@@ -161,3 +161,40 @@ It works against local (`supabase start`, with keys from `supabase status`) and 
 How it was verified: I ran it against the hosted Supabase project (this container has no Docker, so no local stack). Result: 56 passed, 0 failed. `npm run lint` is clean and `npm test` is green (39).
 
 Open: none. Re-run `npm run check:rls` after any future migration that touches tables or policies.
+
+## Phase 3a — Static planner layout (prototype match)
+
+What was done:
+- **Dependency:** added `clsx` (on the brief's allowed list).
+- `components/Page.tsx`: `Page` (one sheet, `@container`, px-5 mobile / px-10 desktop, min-h 900px at ≥900px), `PageTitle`, `Section` (uppercase light 1px-tracked title + italic quoted subtitle).
+- `components/TaskRow.tsx`:
+  - `WeekTaskRow` = number · underline input · checkbox.
+  - `DayTaskRow` = number · underline input · target box · 5 bubbles · actual box · checkbox · feasibility mark slot (✓ sage / ⚠ warm / ✕ warm, note in `title`).
+  - The controls wrap below the title when the page is narrow (flex-wrap, title min 10rem). This happens at 390px and at 900px; at 1440 they are inline.
+  - A done task gets muted + line-through but stays editable (brief wins over the prototype's `disabled`).
+- `components/Bubbles.tsx`: 5 bubbles via `bubbleDisplay`, "+N" overflow, `aria-pressed`. `tabIndex=-1` so keyboard focus stays on rows (keys come in phase 6).
+- `components/Quote.tsx` (Georgia italic, centered, author `font-variant: small-caps`), `components/Notes.tsx`, `components/TopBar.tsx` (‹ Week of DD MMM ›, Mon–Sun buttons with date, selected = skyblue, `Review` link to `/review?week=YYYY-MM-DD`).
+- `components/Planner.tsx` (client): composes the two pages from section configs that use the prototype's titles and subtitles.
+  - **State is local only.** Typing, checkboxes, bubbles (via `clickBubble`), notes, the week arrows and day selection all work but nothing is saved.
+  - Below 900px the weekly page has a "Show ▾ / Hide ▴" toggle (`aria-expanded`), collapsed by default so the day page is close to the top. At ≥900px it's always open and the toggle is hidden.
+- `lib/sample-planner.ts`: static sample data (prototype titles) plus the `WeekTaskView` / `DayTaskView` view types. These view types are meant to be reused when wiring.
+- `app/page.tsx`: auth guard as before. Today = `plannerDate(new Date())` (default HCM/7h; the profile values come with wiring). Renders `Planner` with the sample data.
+
+How it was verified:
+- `npm run lint` is clean and `npm test` is green (39).
+- I ran headless Chromium (Playwright installed in /tmp, **not** a project dependency) against `npm run dev`, logged in via `scripts/dev-login-link.mjs`. Screenshots are in `docs/screenshots/` (planner 1440, 390, 390 with the week open, and the prototype at 1440 for comparison).
+- I also measured the DOM:
+  - 1440: two 680px pages side by side, day row inline.
+  - 900: two 430px pages side by side, row controls wrapped.
+  - 390: pages stacked, week collapsed, no horizontal scroll (scrollWidth = viewport at all three widths).
+  - Quote computed as Georgia/italic/center with small-caps author. Headings are uppercase, 1px, weight 300. The selected day is rgb(184,197,214).
+  - Clicking bubble 4 → actual 4, clicking it again → 3.
+  - No console or hydration errors.
+- Note: the agent can't view images, so the screenshots were checked by DOM measurement only. **A human should eyeball `docs/screenshots/` against the prototype.**
+
+Decisions / deviations:
+- Page surface is `paper` on a `cream` background (brief tokens), where the prototype has cream pages on a white container.
+- The prototype's sage nav buttons were replaced by the brief's top bar. On <600px the day selector wraps to its own full-width row.
+- Target box is read-only display for now. Override-by-click comes in phase 4.
+
+Next step: wire to Supabase with Server Actions (load/create week + day rows, random quote on day creation, autosave with a "saved" indicator), then replace `lib/sample-planner.ts`.

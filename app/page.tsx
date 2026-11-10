@@ -1,24 +1,23 @@
 import { redirect } from "next/navigation";
+import { Planner } from "@/components/Planner";
+import { plannerDate, weekStart } from "@/lib/domain/rollover";
+import { sampleDayTasks, sampleQuote, sampleWeekTasks } from "@/lib/sample-planner";
 import { createClient } from "@/lib/supabase/server";
 
-// Empty planner shell (phase 1). Real layout comes in phase 3.
+// Phase 3a: static layout with sample data. Supabase wiring comes next.
 export default async function PlannerPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login");
 
+  const today = plannerDate(new Date());
   return (
-    <main className="mx-auto max-w-[1400px] p-5">
-      <div className="grid grid-cols-1 overflow-hidden bg-paper shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
-        <section className="min-h-[60vh] border-b-2 border-line px-10 py-14 min-[900px]:border-b-0 min-[900px]:border-r-2">
-          <h1 className="text-xs font-light uppercase tracking-[2px] text-muted">
-            Weekly Planning
-          </h1>
-        </section>
-        <section className="min-h-[60vh] px-10 py-14">
-          <h2 className="text-xs font-light uppercase tracking-[2px] text-muted">Daily</h2>
-        </section>
-      </div>
-    </main>
+    <Planner
+      initialWeekStart={weekStart(today)}
+      initialDate={today}
+      weekTasks={sampleWeekTasks}
+      dayTasks={sampleDayTasks}
+      quote={sampleQuote}
+    />
   );
 }
