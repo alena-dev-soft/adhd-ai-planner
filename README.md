@@ -8,6 +8,8 @@ See `CLAUDE.md` for the brief and `docs/PROGRESS.md` for status.
 ```bash
 npm install
 cp .env.example .env.local      # fill in NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (hosted Supabase project)
+npx supabase db push --db-url "$SUPABASE_DB_URL" --yes   # apply migrations
+psql "$SUPABASE_DB_URL" -f supabase/seed.sql              # quotes (idempotent)
 npm run dev                     # http://localhost:3000 → redirects to /login
 ```
 

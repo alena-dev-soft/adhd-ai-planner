@@ -92,3 +92,16 @@ How it was verified: the migration was pushed to the hosted DB, and `npm run che
 Skipped / open:
 - No quotes seed yet (`supabase/seed.sql` belongs to the next step). `lib/domain` + tests also come later.
 - `npx tsc --noEmit` reports `LayoutProps` missing in `app/layout.tsx`. That type comes from Next's build-time typegen; `npm run build` is fine. This isn't from this step.
+
+## Phase 2b — Quotes seed + generated types
+
+What was done:
+- `supabase/seed.sql`: **40** short productivity/focus quotes (`text`, `author`). It is wired in through `config.toml` `[db.seed] sql_paths = ["./seed.sql"]`, so a local `supabase db reset` picks it up.
+  - **Idempotent:** `insert … select … where not exists (same text)`. You can re-run it against the hosted DB without getting duplicates, and existing `days.quote_id` links are never touched. That's why there's no truncate.
+  - **Attribution decision:** I kept only quotes with a solid source. From the prototype's 8, I kept Jobs, Collier, Levenson and Carnegie. I **dropped** the 4 common misattributions: "secret of getting ahead" (Twain), "whole staircase" (MLK), "future depends on what you do today" (Gandhi) and "believe you can" (Roosevelt). The rest are well-sourced: Drucker, Covey, David Allen, James Clear, Knuth, Torvalds, Kent Beck, Carmack, Annie Dillard, Stephen King and others. The Aristotle–Durant "We are what we repeatedly do" line is credited to Will Durant, its actual author.
+- Applied to the hosted DB with `psql "$SUPABASE_DB_URL" -f supabase/seed.sql`. **I didn't use `supabase db reset`:** this container has no Docker, and running it against the hosted DB would wipe all data.
+- `lib/db-types.ts` was regenerated (`npx supabase gen types typescript --db-url "$SUPABASE_DB_URL" --schema public`). The output was byte-identical, which is expected because the seed doesn't change the schema.
+
+How it was verified: first run `INSERT 0 40`, second run `INSERT 0 0`. `select count(*), count(distinct text) from quotes` → `40|40`. `npm run lint` is clean and `npm test` is green.
+
+Open: the quote picking (random on day creation) comes with the day-row logic in phase 3.
