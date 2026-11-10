@@ -131,3 +131,33 @@ What was done (plain functions, one file per rule, no barrel file; tests next to
 How it was verified: `npm test` passes 39 tests: rollover across midnight, exactly at the hour, the HCM default, month/year boundaries and New York DST. `npm run lint` is clean. `tsc` shows no new errors (only the known `LayoutProps` one remains).
 
 Open: none for this step. The UI wires these in phases 3 and 5.
+
+## Phase 2d — RLS isolation verified with two users
+
+What was done:
+- `scripts/rls-check.mjs` (`npm run check:rls`) was made stricter. It's a plain Node ESM script that only uses `@supabase/supabase-js`, so no new dependencies.
+- **Setup:**
+  - It creates two throwaway users A and B with the auth admin API (service role) and signs both in with a password. That gives two real `authenticated` JWT clients.
+  - A inserts a week, a week_task, a day (with notes) and a day_task linked to its own week_task.
+- **What it checks (56 checks):**
+  - Trigger defaults and constraints: slot range, week slot 13, rating, feasibility, and the duplicate week.
+  - **Reads:** B's `select *` returns **0 rows** from weeks, week_tasks, days and day_tasks. On profiles it returns only B's own row. Selecting each of A's rows by id also returns 0 rows.
+  - **Updates and deletes:** on every table, B's update and delete of A's rows affect 0 rows.
+  - **Inserts into A's data are rejected:** a week or day with `user_id = A`, a week_task in A's week, a day_task in A's day.
+  - **Moving or linking rows into A's data is rejected:** B can't reassign its own week or day to A, move its own week_task or day_task under A's parent, link A's week_task (by insert or update), or upsert onto A's primary keys.
+  - **Error code:** each rejection must fail with Postgres code **42501** (RLS / insufficient privilege). A failure for any other reason doesn't count as a pass.
+  - **A's data unchanged:** an admin (service-role) snapshot of all of A's rows taken before B's attempts is **byte-identical** afterwards.
+  - **Quotes and anon:** authenticated users can read quotes but not insert them. `anon` can read none of the 6 tables and can't insert.
+  - **Cleanup:** deleting both users cascades to their weeks and days.
+- Exit code 1 if any check fails, 2 if env vars are missing. It prints `N passed, M failed`.
+
+How to run:
+```
+npm ci
+npm run check:rls        # reads SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY from .env.local or env
+```
+It works against local (`supabase start`, with keys from `supabase status`) and against the hosted project. It only creates and deletes its own `rls-*@example.com` users.
+
+How it was verified: I ran it against the hosted Supabase project (this container has no Docker, so no local stack). Result: 56 passed, 0 failed. `npm run lint` is clean and `npm test` is green (39).
+
+Open: none. Re-run `npm run check:rls` after any future migration that touches tables or policies.
