@@ -61,3 +61,34 @@ Skipped / not verified:
 - Supabase `start` / Mailpit: not used (hosted project, no Docker).
 - **The real email (PKCE `?code=`) path was not tested end-to-end.** It would send a real email, and the hosted SMTP is rate-limited. The user should check it once: open `/login`, enter your own email, and click the link. If the link lands on the Supabase Site URL instead of `localhost:3000/auth/callback`, add `http://localhost:3000/**` under Auth → URL Configuration.
 - No sign-out button (not in the brief). See OPEN_QUESTIONS.
+
+## Phase 2a — Migrations: tables, constraints, RLS, sign-up trigger
+
+What was done:
+- `supabase/migrations/20261110060647_init_schema.sql` (made with `supabase migration new`) creates `profiles`, `quotes`, `weeks`, `week_tasks`, `days` and `day_tasks`. Columns, defaults, checks and unique constraints match CLAUDE.md §5.
+  - uuid PKs use `default gen_random_uuid()`. `profiles.id` is a FK to `auth.users`. `weeks.user_id` and `days.user_id` are FKs to `auth.users`. All of these are `on delete cascade`. `week_tasks.week_id` → `weeks` and `day_tasks.day_id` → `days` also cascade.
+  - **Additions within the brief's shape (no new columns):** keys/FKs/`slot`/`date`/`week_start` are `not null`. Columns that have a default are also `not null` (`time_zone`, `rollover_hour`, `is_done`, `completed_pomodoros`). `quotes.text` is `not null`. `days.quote_id` → `quotes` is `on delete set null`. `day_tasks.week_task_id` → `week_tasks` is `on delete set null`. There are indexes on those two FKs. `title` stays nullable.
+- RLS is enabled on all six tables. Policies apply to the `authenticated` role and use `(select auth.uid())`:
+  - `profiles`: `id = auth.uid()` for select/insert/update/delete.
+  - `weeks` and `days`: `user_id = auth.uid()` for select/insert/update/delete.
+  - `week_tasks` and `day_tasks`: checked with `exists` on the parent row. **Extra check:** on insert/update, a non-null `day_tasks.week_task_id` must point to a week task the user owns. Without it, the FK check (which bypasses RLS) would let a user link to another user's row.
+  - `quotes`: select only, `using (true)`. Nobody can write quotes through the API; the seed adds them.
+  - `anon` has its default privileges revoked on all of these tables and on `quotes_id_seq`.
+- The trigger `on_auth_user_created` (after insert on `auth.users`) runs `public.handle_new_user()`. The function is `security definer` with `search_path = ''`, inserts `profiles(id)` (`on conflict do nothing`), and nobody else can execute it.
+- `lib/db-types.ts` is generated with `supabase gen types typescript --db-url "$SUPABASE_DB_URL" --schema public`. The CLI prints it unformatted; leave it that way and don't hand-edit it.
+- `scripts/rls-check.mjs` (`npm run check:rls`) creates two throwaway users (admin API + password sign-in) and checks: the trigger and its defaults, the constraints (slot, rating, feasibility, unique week), that B can't read/update/delete/insert-into A's rows in any table, that B can't link A's week task, quote read vs write, that anon gets nothing, and that deleting a user cascades. Afterwards it deletes both users.
+
+How to apply (hosted project, no Docker, so no `db reset`):
+```
+npx supabase db push --db-url "$SUPABASE_DB_URL" --dry-run   # preview
+npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
+npx supabase gen types typescript --db-url "$SUPABASE_DB_URL" --schema public > lib/db-types.ts
+npm run check:rls
+```
+(The CLI warns that `--db-url` is deprecated in favour of `--remote=<db-url>`. It still works in 3.1.)
+
+How it was verified: the migration was pushed to the hosted DB, and `npm run check:rls` passed all 27 checks. `npm run lint` is clean and `npm test` is green.
+
+Skipped / open:
+- No quotes seed yet (`supabase/seed.sql` belongs to the next step). `lib/domain` + tests also come later.
+- `npx tsc --noEmit` reports `LayoutProps` missing in `app/layout.tsx`. That type comes from Next's build-time typegen; `npm run build` is fine. This isn't from this step.
