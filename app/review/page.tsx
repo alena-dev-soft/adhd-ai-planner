@@ -68,7 +68,8 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
           <div className={stat}>
             <dt className="text-xs uppercase tracking-[1px] text-muted">Pomodoros</dt>
             <dd className="tabular-nums">
-              {totals.pomodorosDone} of {totals.pomodorosTarget} planned
+              {totals.pomodorosDone}
+              {totals.pomodorosTarget > 0 && ` of ${totals.pomodorosTarget} planned`}
             </dd>
           </div>
           <div className={stat}>

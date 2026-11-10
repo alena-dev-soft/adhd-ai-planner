@@ -30,3 +30,10 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 - **OpenAI key has no credits.** `OPENAI_API_KEY` currently gets 429 `insufficient_quota`, so the app runs as "AI disabled". The live success path is untested (only with a mocked route). Add credits, then type a day task once to confirm.
 - **Override vs. AI mark.** A manual target keeps the ✓/⚠/✕ mark and the note from the last AI estimate, even though the mark was judged against the AI's own number. Should a manual override clear the mark?
 - **Changed title vs. manual target.** Renaming a task triggers a new estimate that replaces a manual target. Should a manual target be "sticky" instead?
+
+## Phase 5
+
+- **When is a day "closed"?** Pressing "Close the day" sets `closed_at` (once) and opens the panel. A closed day always shows the panel. There is no "reopen" and no way to clear `closed_at`, but all fields stay editable. Is that the intended meaning?
+- **Rating toggle.** Tapping the selected rating again clears it (null). Is that OK, or should a rating, once set, only be changeable?
+- **Review extras.** The review shows "· not closed" on days that have data but were never closed. It shows no average rating, even though `reviewWeek` computes one. Should the week header show the average?
+- **Weekly-task-linked day tasks** (`day_tasks.week_task_id`) aren't used anywhere in the UI or the review. The brief defines the column but no behavior for it.

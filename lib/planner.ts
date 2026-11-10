@@ -75,10 +75,13 @@ async function ensureWeek(supabase: Supabase, userId: string, weekStart: string)
   if (found.data) return found.data.id;
 
   // ignoreDuplicates: a concurrent request may have created it in between.
+  // Use the inserted row directly: a read right after the write may not see it yet.
   const ins = await supabase
     .from("weeks")
-    .upsert({ user_id: userId, week_start: weekStart }, { onConflict: "user_id,week_start", ignoreDuplicates: true });
+    .upsert({ user_id: userId, week_start: weekStart }, { onConflict: "user_id,week_start", ignoreDuplicates: true })
+    .select("id");
   if (ins.error) throw ins.error;
+  if (ins.data[0]) return ins.data[0].id;
 
   const again = await find();
   if (again.error) throw again.error;
@@ -97,10 +100,11 @@ async function ensureDay(
   const find = () =>
     supabase.from("days").select(DAY_COLUMNS).eq("user_id", userId).eq("date", date).maybeSingle();
 
-  let found = await find();
+  const found = await find();
   if (found.error) throw found.error;
+  let d = found.data;
 
-  if (!found.data) {
+  if (!d) {
     // The quote is picked once, when the row is created. On conflict (another
     // request created the row first) nothing is written, so it never changes.
     const quotes = await supabase.from("quotes").select("id");
@@ -109,15 +113,21 @@ async function ensureDay(
 
     const ins = await supabase
       .from("days")
-      .upsert({ user_id: userId, date, quote_id: quoteId }, { onConflict: "user_id,date", ignoreDuplicates: true });
+      .upsert({ user_id: userId, date, quote_id: quoteId }, { onConflict: "user_id,date", ignoreDuplicates: true })
+      .select(DAY_COLUMNS)
+      .maybeSingle();
     if (ins.error) throw ins.error;
 
-    found = await find();
-    if (found.error) throw found.error;
-    if (!found.data) throw new Error(`day ${date} could not be created`);
+    // Use the inserted row directly: a read right after the write may not see it yet.
+    d = ins.data;
+    if (!d) {
+      const again = await find();
+      if (again.error) throw again.error;
+      if (!again.data) throw new Error(`day ${date} could not be created`);
+      d = again.data;
+    }
   }
 
-  const d = found.data;
   return {
     id: d.id,
     view: {

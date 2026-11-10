@@ -76,11 +76,19 @@ export function CloseDay({
     timer.current = setTimeout(flush, DEBOUNCE_MS);
   };
 
+  // Focus the first field right after the button opens the panel.
+  const focusOnOpen = useRef(false);
+  useEffect(() => {
+    if (open && focusOnOpen.current) {
+      focusOnOpen.current = false;
+      document.getElementById("close-highlight")?.focus();
+    }
+  }, [open]);
+
   const closeDay = () => {
     setOpen(true);
+    focusOnOpen.current = true;
     if (closedAt === null) void send({ close: true });
-    // Focus the first field once the panel is rendered.
-    setTimeout(() => document.getElementById("close-highlight")?.focus(), 0);
   };
 
   const pickRating = (n: number) => {

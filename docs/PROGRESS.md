@@ -333,3 +333,39 @@ Decisions / open points (also in OPEN_QUESTIONS):
 - An unknown `feasibility` value from the model counts as a failure. It is not guessed.
 
 Next: phase 5 (Close the day + Review).
+
+## Phase 5 — Close the day + Weekly Review
+
+What was done:
+- **`components/CloseDay.tsx`**: a "Close the day" button sits at the bottom of the day page, under Notes. Clicking it opens an inline panel (not a modal) and focuses the first field.
+  - The panel has Highlight, What worked and What didn't (textareas), plus Rating as ten tappable numbered circles (prototype `.rating-circle`; selected = sage with ink text for contrast). Tapping the selected number again clears the rating.
+  - Opening the panel marks the day closed: `closed_at = now()`, set **once** (conditional update `closed_at is null`), so reopening or editing never moves it. A closed day loads with the panel already open and a small muted "closed" label.
+  - Text fields autosave after an 800ms pause and flush on blur and on leaving the day, like Notes. The rating saves immediately. Everything goes through the shared `useSaver` and its "saved" indicator.
+  - The day stays fully editable after closing (tasks, bubbles, notes and the panel).
+- **Server Action `saveCloseDay`** (`app/actions.ts`) uses the zod schema `dayClosePatch` and `dayCloseRow` in `lib/domain/inputs.ts`. Text is trimmed, and empty text becomes null. The rating is an int 1–10 or null. `close: true` sets closed_at. RLS ensures ownership: if 0 rows are updated, it returns not saved.
+- **`/review?week=YYYY-MM-DD`** (`app/review/page.tsx`, `lib/review.ts`, `components/ReviewCard.tsx`):
+  - The week is normalised to Monday through `resolveSelection`. Without the param, it uses the current week from the user's rollover date.
+  - It is read-only, so it never creates `weeks`/`days` rows. It loads the week's days, day tasks and week tasks, then aggregates them with `reviewWeek` from `lib/domain/review.ts`.
+  - **Header:** ‹ Week of DD MMM › (prev/next week) and a "Planner" link back to `/?week=…`. Then the totals: day tasks done X of Y, pomodoros done (plus "of N planned" when targets exist), weekly tasks done X of Y. Below that, the weekly tasks are split into done and not done.
+  - **One ReviewCard per day, Mon–Sun:** the date (links to that day in the planner) and the rating "N / 10" when set. A stats line shows "N done · M not done · P (of T) pomodoros", plus "· not closed" if the day was never closed. Then What got done (sage ✓), What didn't get done (muted ✗) and the Highlight in italics.
+  - Days without data show a quiet "Nothing written down."
+  - There are no percentages and no stars (see OPEN_QUESTIONS, "Weekly review content").
+- **Fix in `lib/planner.ts`:** `ensureWeek`/`ensureDay` now take the id/row from the insert itself (`upsert … .select()`). Before, they re-read it with a separate select, and on the hosted project that read sometimes didn't see the just-inserted row yet. This made a brand-new user's very first page load fail with "week … could not be created" (reproduced 2 of 2 times, fixed afterwards). The re-read stays as a fallback for the concurrent-insert case.
+
+How it was verified:
+- `npm run lint` is clean and `npm test` is green (83, including new `dayClosePatch` tests).
+- Against `npm run dev` with the hosted Supabase and AI disabled (`env -u OPENAI_API_KEY`), using a throwaway user (deleted afterwards) and headless Playwright:
+  - Week 2025-12-15: two week tasks were added, one of them done.
+  - Mon 12-15: 3 day tasks, 1 done, bubbles 3+1. The day was closed with highlight, worked, didn't and rating 8. Tue 12-16: 2 tasks, none done, 2 bubbles, closed with rating 5. No dialog element was present, and focus moved to the highlight field.
+  - After reloading Monday, the panel was open with every value intact. Editing the highlight and adding a 4th task after closing both saved. `closed_at` in the DB was unchanged.
+  - The Review link opened `/review?week=2025-12-15` showing Mon "8 / 10, 1 done · 3 not done · 4 pomodoros" with the 3 not-done tasks listed (including the one added after closing), and Tue "5 / 10, 0 done · 2 not done" with both tasks listed under not done. Both highlights appeared. Wed–Sun showed "Nothing written down." The weekly tasks were split 1 done / 1 not done.
+  - After setting a target of 4 in the DB, the card showed "4 of 4 pomodoros" and the header showed "6 of 4 planned".
+  - `/review` with no param went to the current week. `?week=2025-12-17` was normalised to Week of 15 Dec. "Planner" went to `/?week=2025-12-15`.
+  - At 390px, `scrollWidth` was 390 on both pages. There were no console errors.
+- Screenshots: `docs/screenshots/review-1440.png`, `review-390.png`, `close-day-1440.png` and `close-day-390.png`.
+
+Decisions / open points (also in OPEN_QUESTIONS):
+- "Closed" means the button was pressed. There is no "reopen". It doesn't need one, because everything stays editable.
+- The review shows "not closed" for days with data that were never closed, and it shows no average rating (not in the brief).
+
+Next: phase 6 (polish: keyboard, empty states, focus rings, AA contrast, README, Playwright smoke test).
