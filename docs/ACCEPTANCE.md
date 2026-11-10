@@ -5,7 +5,7 @@ Tick each line; note anything wrong under "Fixes".
 
 ## Pre-check (agent, before handing over)
 - [x] `npm run lint` clean, `npm test` 83/83 green.
-- [ ] OpenAI: `OPENAI_API_KEY` still returns **429 insufficient_quota** → the app runs in "AI disabled" mode (targets stay empty, no marks). Add credits to test the AI path.
+- [x] OpenAI: key now works (gpt-4o-mini, live estimates in 1–2.5 s, e.g. "Fix ABC database migration" → 3, warning).
 
 ## Walkthrough (human)
 1. [ ] Login: magic link email arrives in your real inbox and opens the planner (redirect allow-list contains `http://localhost:3000/**`).
