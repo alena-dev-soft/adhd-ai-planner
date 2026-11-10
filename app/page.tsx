@@ -1,23 +1,39 @@
 import { redirect } from "next/navigation";
 import { Planner } from "@/components/Planner";
-import { plannerDate, weekStart } from "@/lib/domain/rollover";
-import { sampleDayTasks, sampleQuote, sampleWeekTasks } from "@/lib/sample-planner";
+import { plannerHref, resolveSelection, shiftWeek } from "@/lib/domain/selection";
+import { loadPlanner, userToday } from "@/lib/planner";
 import { createClient } from "@/lib/supabase/server";
 
-// Phase 3a: static layout with sample data. Supabase wiring comes next.
-export default async function PlannerPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/login");
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-  const today = plannerDate(new Date());
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+/** Planner. URL state: `?date=YYYY-MM-DD` (selected day; its week is shown) or `?week=YYYY-MM-DD`. */
+export default async function PlannerPage({ searchParams }: { searchParams: SearchParams }) {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) redirect("/login");
+
+  const params = await searchParams;
+  const today = await userToday(supabase, userId);
+  const { weekStart, date } = resolveSelection(
+    { date: first(params.date), week: first(params.week) },
+    today,
+  );
+  const data = await loadPlanner(supabase, userId, weekStart, date);
+
   return (
     <Planner
-      initialWeekStart={weekStart(today)}
-      initialDate={today}
-      weekTasks={sampleWeekTasks}
-      dayTasks={sampleDayTasks}
-      quote={sampleQuote}
+      key={date}
+      weekStart={weekStart}
+      selectedDate={date}
+      today={today}
+      prevWeekHref={plannerHref(shiftWeek(weekStart, -1, today).date)}
+      nextWeekHref={plannerHref(shiftWeek(weekStart, 1, today).date)}
+      weekTasks={data.weekTasks}
+      dayTasks={data.dayTasks}
+      day={data.day}
     />
   );
 }

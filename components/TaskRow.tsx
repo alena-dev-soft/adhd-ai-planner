@@ -1,7 +1,8 @@
 import clsx from "clsx";
+import type { Feasibility } from "@/lib/domain/overload";
 import { Bubbles } from "./Bubbles";
 
-export type Feasibility = "yes" | "warning" | "no";
+export type { Feasibility };
 
 const FEASIBILITY_MARK: Record<Feasibility, { mark: string; className: string; label: string }> = {
   yes: { mark: "✓", className: "text-sage", label: "Feasible" },

@@ -198,3 +198,33 @@ Decisions / deviations:
 - Target box is read-only display for now. Override-by-click comes in phase 4.
 
 Next step: wire to Supabase with Server Actions (load/create week + day rows, random quote on day creation, autosave with a "saved" indicator), then replace `lib/sample-planner.ts`.
+
+## Phase 3b — Load data: planner day, week, quote
+
+What was done:
+- **URL state** (`lib/domain/selection.ts`, pure + tests):
+  - `/?date=YYYY-MM-DD` selects that day; the week shown is its Monday-based week.
+  - `/?week=YYYY-MM-DD` (any date in the week, normalised to Monday) selects today if today is in that week, else Monday.
+  - No params or invalid values (e.g. `2025-02-30`) → today. `date` wins over `week`.
+  - ‹ › link to `/?date=<Monday of prev/next week>` (or today when returning to the current week) via `shiftWeek`. The Mon–Sun selector links to `/?date=…`. Both are now `<Link>`s in `TopBar` (no client state for week/day). The selected day has `aria-current="date"`; today (when not selected) gets a skyblue underline + title "Today".
+- **Today** (`lib/planner.ts#userToday`): reads `profiles.time_zone` / `rollover_hour` for the user and calls `plannerDate`. A missing profile or bad time zone falls back to the defaults (HCM / 7) instead of crashing.
+- **Load or create** (`lib/planner.ts#loadPlanner`, runs in the server component with the user's RLS client):
+  - weeks row for `week_start` and days row for the selected date: select → if missing, `upsert(..., { ignoreDuplicates: true })` → select again. Concurrent first loads can't create duplicates or fail.
+  - **Quote:** only when the days row is created, a random `quotes.id` (`pickRandom`) is set as `quote_id`. On conflict nothing is written, and nothing else ever updates `quote_id`, so it stays fixed. The day is read with `quote:quotes(text, author)`.
+  - week_tasks and day_tasks are read and mapped to all 12 / 5 slots (`lib/domain/views.ts`, pure + tests; missing slots are empty rows). Day fields (notes, highlight, what worked/didn't, rating, closed_at) come in `DayView`.
+- `lib/supabase/server.ts` client is now typed with `Database` (join types are inferred).
+- `Planner` gets `weekStart`, `selectedDate`, `today`, prev/next hrefs, tasks and `day`. It's keyed by date in `app/page.tsx`, so local state resets when the day changes. Edits are still local only (Server Actions = next step). The quote is hidden if a day has no quote (empty quotes table).
+- `lib/sample-planner.ts` removed. The view types moved to `lib/domain/views.ts`, and `Feasibility` now comes from `lib/domain/overload.ts`.
+
+How it was verified:
+- `npm run lint` is clean, `npm test` is green (54), and `tsc` only shows the known `LayoutProps` error.
+- Against the hosted project with `npm run dev` + curl, signed in via `dev-login-link.mjs` as a throwaway user (deleted afterwards):
+  - `/` → today's week (Mon 09 Nov for Tue 2026-11-10) with today selected. `?date=2025-12-17` and `?week=2025-12-01` (→ Monday 12-01) both work, and `?date=bogus` → today. Prev/next hrefs are `/?date=2025-12-08` / `2025-12-22`.
+  - Weeks and days rows are created once each. The quote_id stayed the same across 3 reloads (same quote text rendered). 5 parallel first requests for a new date → 200 ×5 and one row.
+  - Rows inserted with the service role (week slot 7 done, day slot 2 with 6 pomodoros, notes) rendered correctly (value, checked, "+1", notes).
+
+Decisions:
+- Visiting any date creates its weeks/days rows (as the step asked). Empty days don't show in the review because `hasData` ignores them.
+- No `server-only` package (not on the allowed list); `lib/planner.ts` is only imported by server components.
+
+Next: Server Actions for autosave (week task title/done, day task title/bubbles/done, notes debounce 800ms) + the "saved" indicator.

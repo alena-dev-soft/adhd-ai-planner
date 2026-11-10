@@ -4,8 +4,8 @@ import clsx from "clsx";
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { clickBubble } from "@/lib/domain/bubbles";
-import { addDaysToDate, weekDates } from "@/lib/domain/rollover";
-import type { DayTaskView, WeekTaskView } from "@/lib/sample-planner";
+import { weekDates } from "@/lib/domain/rollover";
+import type { DayTaskView, DayView, WeekTaskView } from "@/lib/domain/views";
 import { Notes } from "./Notes";
 import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
@@ -24,35 +24,37 @@ const DAY_SECTIONS = [
   { title: "Additional Tasks", subtitle: "Do these only after you have completed the tasks above", slots: [4, 5] },
 ];
 
-/** Two facing pages. Static phase: state is local only, nothing is saved yet. */
+/**
+ * Two facing pages. Week and day come from the URL (server-loaded); task and
+ * notes edits are local state until the Server Actions are wired.
+ */
 export function Planner({
-  initialWeekStart,
-  initialDate,
+  weekStart,
+  selectedDate,
+  today,
+  prevWeekHref,
+  nextWeekHref,
   weekTasks: initialWeekTasks,
   dayTasks: initialDayTasks,
-  quote,
+  day: dayData,
 }: {
-  initialWeekStart: string;
-  initialDate: string;
+  weekStart: string;
+  selectedDate: string;
+  today: string;
+  prevWeekHref: string;
+  nextWeekHref: string;
   weekTasks: WeekTaskView[];
   dayTasks: DayTaskView[];
-  quote: { text: string; author: string | null };
+  day: DayView;
 }) {
-  const [weekStart, setWeekStart] = useState(initialWeekStart);
-  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [weekTasks, setWeekTasks] = useState(initialWeekTasks);
   const [dayTasks, setDayTasks] = useState(initialDayTasks);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(dayData.notes);
   const [weekOpen, setWeekOpen] = useState(false);
 
   const dates = weekDates(weekStart);
   const day = parseISO(selectedDate);
 
-  function moveWeek(days: number) {
-    const next = addDaysToDate(weekStart, days);
-    setWeekStart(next);
-    setSelectedDate(next);
-  }
   const updateWeek = (slot: number, patch: Partial<WeekTaskView>) =>
     setWeekTasks((ts) => ts.map((t) => (t.slot === slot ? { ...t, ...patch } : t)));
   const updateDay = (slot: number, patch: (t: DayTaskView) => Partial<DayTaskView>) =>
@@ -64,9 +66,9 @@ export function Planner({
         weekStart={weekStart}
         dates={dates}
         selectedDate={selectedDate}
-        onPrevWeek={() => moveWeek(-7)}
-        onNextWeek={() => moveWeek(7)}
-        onSelectDate={setSelectedDate}
+        today={today}
+        prevWeekHref={prevWeekHref}
+        nextWeekHref={nextWeekHref}
       />
 
       <div className="grid grid-cols-1 overflow-hidden bg-paper shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
@@ -117,7 +119,7 @@ export function Planner({
             </div>
           </div>
 
-          <Quote text={quote.text} author={quote.author} />
+          {dayData.quote && <Quote text={dayData.quote.text} author={dayData.quote.author} />}
 
           {DAY_SECTIONS.map((s) => (
             <Section key={s.title} title={s.title} subtitle={s.subtitle}>
