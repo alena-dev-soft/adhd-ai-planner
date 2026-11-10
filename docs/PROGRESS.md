@@ -105,3 +105,29 @@ What was done:
 How it was verified: first run `INSERT 0 40`, second run `INSERT 0 0`. `select count(*), count(distinct text) from quotes` → `40|40`. `npm run lint` is clean and `npm test` is green.
 
 Open: the quote picking (random on day creation) comes with the day-row logic in phase 3.
+
+## Phase 2c — Pure domain functions (`lib/domain`) + Vitest
+
+What was done (plain functions, one file per rule, no barrel file; tests next to each file):
+- **Dependencies:** added `date-fns` and `date-fns-tz`. Both are on the brief's allowed list.
+- `category.ts`: `weekCategory(slot)` maps 1–5 → important, 6–10 → secondary, 11–12 → additional. `dayCategory(slot)` maps 1 → important, 2–3 → secondary, 4–5 → additional. Out-of-range slots throw `RangeError`.
+- `rollover.ts`:
+  - `plannerDate(instant, timeZone = 'Asia/Ho_Chi_Minh', rolloverHour = 7)` returns `YYYY-MM-DD`. It reads the local wall-clock date and hour in the user's zone (`formatInTimeZone`). If the hour is before `rolloverHour`, it returns the previous date.
+  - `rolloverHour` must be an integer from 0 to 23, otherwise it throws.
+  - `weekStart(date)` returns the Monday. `addDaysToDate(date, n)` and `weekDates(monday)` (Mon–Sun) are also here.
+  - Date strings are worked on at local noon, so the result doesn't depend on the server's TZ or on DST. Tests pass with `TZ=America/Los_Angeles` and `TZ=Pacific/Kiritimati`.
+  - Usage on the server: `plannerDate(new Date(), profile.time_zone, profile.rollover_hour)`.
+- `bubbles.ts`:
+  - `clickBubble(completed, n)`: clicking bubble n sets completed to n. Clicking the last filled bubble sets completed − 1.
+  - **Decision:** when completed > 5, bubble 5 counts as the last filled one, so clicking it gives completed − 1 (7 → 6).
+  - `bubbleDisplay(completed)` returns `{ filled: 0–5, overflow: '+N' | null }`.
+- `overload.ts`: `overload(targets)` returns `'yes'` up to 12, `'warning'` above 12, and `'no'` above 15. Null and undefined targets are ignored. `totalTarget(targets)` is also exported.
+- `review.ts`: `reviewWeek({ weekStart, days, dayTasks, weekTasks? })`.
+  - The inputs are structural subsets of the DB rows. The function always returns 7 days (Mon–Sun).
+  - Each day has `done`/`notDone` (with slot, title and category), `highlight`, `rating`, `closed`, `pomodorosDone` and `pomodorosTarget` (null targets count as 0), plus `hasData`. `hasData` is true if the day has a titled task, a highlight, a rating or a `closed_at`.
+  - The week also gets `weekTasksDone`/`weekTasksNotDone` for the review header, and `totals` (done, notDone, pomodoros done and target, daysRated, averageRating or null).
+  - Tasks with an empty or whitespace-only title are ignored, and days outside the week are ignored.
+
+How it was verified: `npm test` passes 39 tests: rollover across midnight, exactly at the hour, the HCM default, month/year boundaries and New York DST. `npm run lint` is clean. `tsc` shows no new errors (only the known `LayoutProps` one remains).
+
+Open: none for this step. The UI wires these in phases 3 and 5.
