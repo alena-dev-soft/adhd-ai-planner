@@ -264,3 +264,27 @@ Decisions:
 - Failed saves show "not saved" in the warm color. The brief only names "saved", but silently losing data seemed worse. → listed in OPEN_QUESTIONS.
 
 Next: phase 4 (AI estimate route, inline feasibility, target override, overload warning).
+
+## Phase 3d — Layout review against the prototype (awaiting human approval)
+
+Screenshots (all in `docs/screenshots/`, regenerated from the Supabase-wired app on 2025-12-16 with prototype-like data):
+- `compare-1440.png`: prototype (left) and app (right) side by side at 1440px.
+- `compare-390.png`: the same at 390px.
+- Single shots: `planner-1440.png`, `planner-390.png`, `planner-390-week-open.png`, `prototype-1440.png` and `prototype-390.png`.
+
+How they were made:
+- A throwaway user (deleted afterwards) opened `/?date=2025-12-16`.
+- Week and day tasks were filled in with the service role (same titles as the prototype, plus targets, feasibility marks and one "+1" overflow), then the page was reloaded and captured with headless Chromium.
+- No console errors. At 390px `scrollWidth` is 390, so there's no horizontal scroll.
+
+Deliberate differences from the prototype (required by the brief):
+1. **Top bar** replaces the prototype's sage "Daily Planner / Weekly Review" buttons and its full-name day buttons. It holds ‹ Week of DD MMM ›, a Mon–Sun selector (selected day in skyblue, today underlined), a Review link and the "saved" text indicator (§7).
+2. **Day task row:** number · underline input · **target box** · **5 bubbles** (the prototype has 3) · **actual box** · checkbox · feasibility mark (§4). Over 5, the actual box shows "+N".
+3. **Week tasks have a checkbox** (§1). The prototype's week rows have none.
+3a. A done task stays editable: its title is muted with a line-through. The prototype disables the input instead, but the brief says everything stays editable.
+4. **Real dates** are shown ("Week of dd / MM / yyyy", "Date dd / MM / yyyy"), not the blank `___/___/20__`.
+5. **Colours:** pages use the `paper` (#FBFAF7) surface on a `cream` background (§4 tokens). The prototype has cream pages on a white card.
+6. **Breakpoint:** the pages sit side by side at ≥900px and stack below that (§4). The prototype stacks below 1024px. On mobile the weekly page is collapsible ("Show ▾ / Hide ▴") and collapsed by default.
+7. **Weekly Review** will be its own route `/review` (phase 5), not a toggle on the same page. **Close the day** (rating circles etc.) also comes in phase 5, so it isn't on the screenshots yet.
+
+Open: **a human needs to look at the compare images and approve or list visual fixes** (the agent can't view images; checks were DOM-based).
