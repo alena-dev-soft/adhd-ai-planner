@@ -1,13 +1,21 @@
 # Progress
 
-## Step 0 — Local environment & keys (human prerequisites)
+## Step 0 — Development environment & keys
 
 What was done:
-- Added `docs/SETUP.md`: required tools (Node LTS, git, Docker running, Supabase CLI) with check commands, and how to obtain/store `OPENAI_API_KEY`.
-- Fixed `.gitignore`: the repo shipped with a Visual Studio template that did **not** ignore `.env.local`, `node_modules/` or `.next/`. Added Node/Next/Supabase/Playwright entries and `.env` / `.env*.local` (with `!.env.example`). Verified: `git check-ignore -v .env.local` → ignored.
+- `.gitignore`: the repo came with a Visual Studio template that didn't ignore `.env.local`, `node_modules/` or `.next/`. Added entries for Node, Next, Supabase and Playwright, plus `.env` / `.env*.local` (with `!.env.example`). Checked: `git check-ignore -v .env.local` → ignored.
+- **Decision (user):** we use a hosted Supabase project, not the local Docker stack. No Docker. All checks run in the agent container. `docs/SETUP.md` was rewritten for this (tools, env vars, migration commands).
+- Secrets requested and present as env vars and in `.env.local` (gitignored, not committed): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `OPENAI_API_KEY`.
+- Added `.env.example` (placeholders only) and `docs/OPEN_QUESTIONS.md`.
 
-Verified in the agent container: Node v22, npm 10.9, git 2.39, `npx supabase --version` → 3.1.0.
-Not available in the agent container: Docker (so `supabase start` cannot run there). Docker/Supabase on the human dev machine must be confirmed by the user — see status below.
+Checked in the container:
+- Node v22.23, npm 10.9, git 2.39, `npx supabase@latest --version` → 3.1.0, psql 15.19 installed via apt.
+- `psql "$SUPABASE_DB_URL"` → connects as `postgres`, server Postgres 17.11. The `auth` schema exists and `public` has no tables yet.
+- Auth API at `<origin>/auth/v1/health` and `/settings` → 200 (email provider enabled). Admin users endpoint with the service key → 200.
+- OpenAI `GET /v1/models/gpt-4o-mini` → 200 (key is valid and has access to the model).
 
-Open points:
-- Human dev machine confirmation (`docker ps`, `supabase --version`, OpenAI key ready): see "Human confirmation" below.
+Open points (see OPEN_QUESTIONS.md):
+- The `SUPABASE_URL` secret is the REST endpoint (`…/rest/v1/`), not the origin. Fix the secret, or use `new URL(...).origin` in code.
+- Keys use the new format (`sb_publishable_…` / `sb_secret_…`). Use a current `@supabase/supabase-js`.
+- The redirect URL `http://localhost:3000/**` must be allowed in Supabase Auth settings. The user needs to confirm this.
+- Phases 1–2 need to change: `supabase start` / `db reset` / Inbucket → `db push --db-url`, admin `generateLink` for test logins.
