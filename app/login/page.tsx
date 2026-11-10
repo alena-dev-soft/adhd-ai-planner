@@ -11,10 +11,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-5">
       <div className="w-full max-w-sm bg-paper px-10 py-14 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-        <h1 className="mb-2 text-xs font-light uppercase tracking-[2px] text-muted">
+        <h1 className="mb-2 text-xs font-light uppercase tracking-[2px] text-muted-text">
           ADH Planner
         </h1>
-        <p className="mb-8 text-sm italic text-muted">
+        <p className="mb-8 text-sm italic text-muted-text">
           &ldquo;The secret of getting ahead is getting started.&rdquo;
         </p>
 
@@ -30,18 +30,18 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 autoFocus
-                className="border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-sage"
+                className="border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-sage-text"
               />
             </label>
             <button
               type="submit"
               disabled={pending}
-              className="self-start text-xs uppercase tracking-[1px] text-ink underline decoration-sage underline-offset-4 disabled:text-muted"
+              className="self-start text-xs uppercase tracking-[1px] text-ink underline decoration-sage underline-offset-4 disabled:text-muted-text"
             >
               {pending ? "Sending…" : "Send magic link"}
             </button>
             {state.status === "error" && (
-              <p className="text-sm text-warm">{state.message}</p>
+              <p className="text-sm text-warm-text">{state.message}</p>
             )}
           </form>
         )}

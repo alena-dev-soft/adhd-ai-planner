@@ -369,3 +369,41 @@ Decisions / open points (also in OPEN_QUESTIONS):
 - The review shows "not closed" for days with data that were never closed, and it shows no average rating (not in the brief).
 
 Next: phase 6 (polish: keyboard, empty states, focus rings, AA contrast, README, Playwright smoke test).
+
+## Phase 6 — Polish: keyboard, a11y, README, Playwright smoke
+
+What was done:
+- **Keyboard** (`components/TaskRow.tsx`):
+  - In a title, Enter saves and moves to the next slot, as before. **Escape** now steps out to the row. Each row is a focusable `role="group"` (`tabIndex=-1`, `data-row`, `aria-keyshortcuts`).
+  - A row-level `onKeyDown` acts only when focus isn't in a text field. Space toggles done; 1–5 = `clickBubble(n)` (day rows); Enter returns to the title. The checkbox and target box keep their native Space/Enter (`data-native-keys`).
+  - Choice documented in OPEN_QUESTIONS.
+- **Contrast** (user chose option A, see OPEN_QUESTIONS):
+  - New text-only tokens `muted-text` #6B6B6B, `sage-text` #567540 and `warm-text` #8A6030 in `app/globals.css`. Every `text-muted/sage/warm` use was switched to them. Fills, bubbles and borders are unchanged.
+  - Placeholders use `muted-text`. Text-field focus underlines use `sage-text`. The selected day number is full ink.
+- **Focus rings:** a global `:focus-visible` 2px `sage-text` outline (offset 2px) on links, buttons, checkboxes and `[tabindex]`. Rows show the same outline on `:focus`.
+- **Empty states:**
+  - The review page shows one calm line instead of seven empty cards when the week has no data: "These pages are still blank. Plan a day and close it, and it will show up here."
+  - Existing hints stay: "Nothing written down.", "No weekly tasks planned.", "Task" / "Notes…" placeholders.
+- **README:** local setup in 7 commands (clone, install, `supabase start`, copy env, `db reset`, dev, test), the hosted alternative, the keyboard list, checks and e2e. It notes that the app works without `OPENAI_API_KEY`. `.env.example` gained `MAILPIT_URL` and `E2E_BASE_URL`.
+- **Playwright:**
+  - Added `@playwright/test` 1.65 (dev), `playwright.config.ts` (loads `.env.local`, starts or reuses `npm run dev`, chromium) and `npm run test:e2e`.
+  - Exactly one test, `e2e/smoke.spec.ts`: magic-link login → type a day task + Enter → click bubble 1 → reload → title and bubble still there. It waits for the Server Action responses.
+  - Login reads the email from Mailpit when `MAILPIT_URL` is set. Otherwise it uses the admin `generateLink` (hosted). The throwaway user is deleted.
+
+How it was verified:
+- `npm run lint` clean, `npm test` 83/83 green (`tsc` shows only the known `LayoutProps` typegen error).
+- `npm run test:e2e` passes both with AI disabled (`env -u OPENAI_API_KEY`) and with the current key (OpenAI 429 → estimate null → task saved anyway).
+  - The dev server logs a harmless `Error: aborted` when the reload cuts off an in-flight request.
+- Temporary Playwright scripts (not committed, users deleted) against hosted Supabase:
+  - **Keyboard:** typing "Write 1 2 3 tests " in a title changes no bubbles. Enter → slot 2 focused. Escape → row focused, with a computed outline of solid 2px rgb(86,117,64). "3" → 3 bubbles. Space twice → done/undone. Space on the checkbox toggles it once. "5" → 5 bubbles. Enter on the row → title focused. On a week row, Escape + Space → done, and "2" is a no-op. All of it persisted after reload. Tab focus on a link shows the ring.
+  - **Definition of Done walkthrough, AI disabled**, day 2026-01-05:
+    - Planned week task 1. Added day tasks 1 and 2 and set the targets manually (9 + 7), which showed the "16 … more than one shift holds (15)" line.
+    - Filled 3 bubbles, checked task 1, wrote notes, closed the day with a highlight and rating 8. Everything was still there after reload.
+    - `/review?week=2026-01-05` showed: 1 of 2 day tasks done, "3 of 16 planned" pomodoros, weekly 0 of 1 ("Ship release" not done). Monday showed 8/10, Fix migration done, Review PR not done, and the highlight. The other days showed "Nothing written down."
+  - **Night-shift boundary:** covered by `lib/domain/rollover.test.ts` ("Tue 2025-12-16 02:00 local → 2025-12-15", plus 00:00/06:59/07:00 and DST cases). The server computes "today" with `plannerDate` in the profile time zone.
+
+Skipped / open:
+- The local-stack paths (README `supabase start`/`db reset`, smoke test via Mailpit) weren't run because there is no Docker in the container.
+- Hairlines and empty-bubble outlines stay below 3:1 (decorative).
+
+Next: phase 7 (deploy) — only when asked.

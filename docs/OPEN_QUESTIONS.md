@@ -37,3 +37,16 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 - **Rating toggle.** Tapping the selected rating again clears it (null). Is that OK, or should a rating, once set, only be changeable?
 - **Review extras.** The review shows "· not closed" on days that have data but were never closed. It shows no average rating, even though `reviewWeek` computes one. Should the week header show the average?
 - **Weekly-task-linked day tasks** (`day_tasks.week_task_id`) aren't used anywhere in the UI or the review. The brief defines the column but no behavior for it.
+
+## Phase 6
+
+- **Row focus vs. input focus (keyboard).** The brief says "on a focused row, Space toggles done and keys 1–5 set pomodoros", but every row is mostly a text input, where Space and digits must type. Decision:
+  - While a text field (title, target editor) has focus, all keys type normally. **Escape** in a title moves focus to the row itself (`tabIndex=-1`, outlined in darker sage). Clicking the row's empty space or a bubble also focuses the row.
+  - With the row (or a bubble or the checkbox) focused: **Space** toggles done, **1–5** acts like clicking that bubble (so pressing the current count's key removes one, the same as the brief's bubble rule), and **Enter** goes back to the title. The checkbox and target box keep their native Space/Enter.
+  - Week rows: Space and Enter only, since they have no pomodoros. Rows aren't extra Tab stops. Is Escape a good enough way in, or should rows be in the Tab order?
+- **Contrast (WCAG AA, text on cream #F5F3EF).** muted #9A9A9A = 2.54:1, sage #A8C48F = 1.73:1, warm #D4A574 = 2.01:1. All fail 4.5:1 as text. **User decision (option A):** fills, bubbles and borders keep the tokens, and text uses new darker shades: `muted-text` #6B6B6B (4.81), `sage-text` #567540 (4.72), `warm-text` #8A6030 (4.99).
+  - The same shade is used for placeholders, text-field focus underlines and the focus ring (2px `sage-text`), because sage itself is 1.73:1 and fails the 3:1 non-text minimum.
+  - The day number on the selected (skyblue) day button is now full ink. It was ink/70, at 3.97:1.
+  - Still below 3:1 and left as is (decorative, not the only cue): the hairline borders #E8E3DD, empty bubble outlines, and the skyblue selected-day fill (the selection is also exposed as `aria-current`).
+- **Playwright login on hosted Supabase.** The smoke test reads the real magic-link email from Mailpit when `MAILPIT_URL` is set (local stack). This project runs on hosted Supabase without Docker, so here it gets the same link from the admin API (`generateLink`) instead. The Mailpit path hasn't been run (no Docker in the agent container).
+- **README local setup not run end to end.** `supabase start` / `db reset` need Docker, which the agent container doesn't have. The commands follow the brief and the Supabase CLI docs.

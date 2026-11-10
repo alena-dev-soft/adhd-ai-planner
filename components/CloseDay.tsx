@@ -17,7 +17,7 @@ const FIELDS: { field: TextField; title: string; subtitle: string }[] = [
 ];
 
 const heading = "mb-1 text-[0.8rem] font-light uppercase tracking-[1px]";
-const subtitle = "mb-3 text-xs italic text-muted";
+const subtitle = "mb-3 text-xs italic text-muted-text";
 
 /**
  * "Close the day": an inline panel at the bottom of the day page (never a
@@ -118,7 +118,7 @@ export function CloseDay({
         <h3 id="close-day-title" className={heading}>
           Close the day
         </h3>
-        {closedAt && <span className="text-xs italic text-muted">closed</span>}
+        {closedAt && <span className="text-xs italic text-muted-text">closed</span>}
       </div>
 
       {FIELDS.map(({ field, title, subtitle: sub }) => (
@@ -133,7 +133,7 @@ export function CloseDay({
             onChange={(e) => changeText(field, e.target.value)}
             onBlur={flush}
             rows={2}
-            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage"
+            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage-text"
           />
         </div>
       ))}

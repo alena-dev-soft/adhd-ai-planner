@@ -22,7 +22,7 @@ export function TopBar({
   nextWeekHref: string;
   status?: ReactNode;
 }) {
-  const arrow = "px-2 text-lg leading-none text-muted hover:text-ink";
+  const arrow = "px-2 text-lg leading-none text-muted-text hover:text-ink";
   return (
     <nav className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm">
       <div className="flex items-center gap-1">
@@ -54,7 +54,7 @@ export function TopBar({
               )}
             >
               <span>{format(d, "EEE")}</span>
-              <span className="tabular-nums text-[0.7rem] text-ink/70">{format(d, "d")}</span>
+              <span className={clsx("tabular-nums text-[0.7rem]", !selected && "text-ink/70")}>{format(d, "d")}</span>
             </Link>
           );
         })}

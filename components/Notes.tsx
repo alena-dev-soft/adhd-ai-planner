@@ -11,7 +11,7 @@ export function Notes({
   return (
     <div className="mt-8 border-t border-line pt-5">
       <h3 className="mb-1 text-[0.8rem] font-light uppercase tracking-[1px]">Notes</h3>
-      <p className="mb-4 text-xs italic text-muted">
+      <p className="mb-4 text-xs italic text-muted-text">
         &ldquo;Extra space for ideas, future tasks, inspiration, etc.&rdquo;
       </p>
       <textarea
@@ -20,7 +20,7 @@ export function Notes({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={() => onBlur?.()}
-        className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage"
+        className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage-text"
       />
     </div>
   );

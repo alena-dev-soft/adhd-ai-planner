@@ -13,8 +13,8 @@ export function TaskList({ title, tasks, done }: { title: string; tasks: ReviewT
       <h3 className={sectionTitle}>{title}</h3>
       <ul className="text-[0.9rem] leading-relaxed">
         {tasks.map((t) => (
-          <li key={t.slot} className={done ? "text-ink" : "text-muted"}>
-            <span aria-hidden className={done ? "text-sage" : undefined}>
+          <li key={t.slot} className={done ? "text-ink" : "text-muted-text"}>
+            <span aria-hidden className={done ? "text-sage-text" : undefined}>
               {done ? "✓" : "✗"}
             </span>{" "}
             <span className="sr-only">{done ? "Done: " : "Not done: "}</span>
@@ -40,16 +40,16 @@ export function ReviewCard({ day }: { day: DayReview }) {
         {day.rating !== null && (
           <span className="text-[0.9rem] tabular-nums">
             {day.rating}
-            <span className="text-muted"> / 10</span>
+            <span className="text-muted-text"> / 10</span>
           </span>
         )}
       </header>
 
       {!day.hasData ? (
-        <p className="mt-2 text-xs italic text-muted">Nothing written down.</p>
+        <p className="mt-2 text-xs italic text-muted-text">Nothing written down.</p>
       ) : (
         <>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-xs text-muted-text">
             {day.done.length} done · {day.notDone.length} not done · {day.pomodorosDone}
             {day.pomodorosTarget > 0 && ` of ${day.pomodorosTarget}`} pomodoros
             {!day.closed && " · not closed"}

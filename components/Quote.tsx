@@ -6,7 +6,7 @@ export function Quote({ text, author }: { text: string; author: string | null })
         &ldquo;{text}&rdquo;
       </blockquote>
       {author && (
-        <figcaption className="mt-2 text-[0.85rem] tracking-[1px] text-muted [font-variant:small-caps]">
+        <figcaption className="mt-2 text-[0.85rem] tracking-[1px] text-muted-text [font-variant:small-caps]">
           — {author}
         </figcaption>
       )}

@@ -29,7 +29,7 @@ export function Bubbles({
           />
         );
       })}
-      <span className="w-5 text-[0.7rem] text-muted">{overflow}</span>
+      <span className="w-5 text-[0.7rem] text-muted-text">{overflow}</span>
     </div>
   );
 }
