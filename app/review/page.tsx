@@ -73,6 +73,12 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
             </dd>
           </div>
           <div className={stat}>
+            <dt className="text-xs uppercase tracking-[1px] text-muted-text">Average rating</dt>
+            <dd className="tabular-nums">
+              {totals.averageRating === null ? "—" : `${Math.round(totals.averageRating * 10) / 10} / 10`}
+            </dd>
+          </div>
+          <div className={stat}>
             <dt className="text-xs uppercase tracking-[1px] text-muted-text">Weekly tasks done</dt>
             <dd className="tabular-nums">
               {review.weekTasksDone.length} of {weekTaskCount}

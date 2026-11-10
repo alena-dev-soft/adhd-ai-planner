@@ -2,9 +2,10 @@ import clsx from "clsx";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
+import { signOut } from "@/app/login/actions";
 import { plannerHref } from "@/lib/domain/selection";
 
-/** ‹ Week of DD MMM › · Mon–Sun selector · link to Review. */
+/** ‹ Week of DD MMM › · Mon–Sun selector · link to Review · sign out. */
 export function TopBar({
   weekStart,
   dates,
@@ -68,6 +69,11 @@ export function TopBar({
         >
           Review
         </Link>
+        <form action={signOut}>
+          <button type="submit" className="text-xs text-muted-text hover:text-ink">
+            sign out
+          </button>
+        </form>
       </div>
     </nav>
   );
