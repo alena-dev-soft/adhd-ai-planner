@@ -65,6 +65,16 @@ describe("dayNotes", () => {
   });
 });
 
+describe("dayTaskPatch targetIsManual", () => {
+  it("maps to target_is_manual and counts as a non-empty patch", () => {
+    expect(dayTaskRow(dayTaskPatch.parse({ dayId: id, slot: 2, targetIsManual: true }))).toEqual({
+      day_id: id,
+      slot: 2,
+      target_is_manual: true,
+    });
+  });
+});
+
 describe("dayTaskPatch feasibility", () => {
   it("maps the AI estimate fields and clears with null", () => {
     const p = dayTaskPatch.parse({ dayId: id, slot: 1, targetPomodoros: 3, feasibility: "warning", feasibilityNote: " Tight. " });

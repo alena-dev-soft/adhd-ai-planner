@@ -6,6 +6,8 @@ export type DayTaskView = {
   slot: number;
   title: string;
   targetPomodoros: number | null;
+  /** The user typed the target; a rename's AI estimate leaves it alone. */
+  targetIsManual: boolean;
   completedPomodoros: number;
   isDone: boolean;
   feasibility: Feasibility | null;
@@ -30,6 +32,7 @@ type DayTaskRow = {
   slot: number;
   title: string | null;
   target_pomodoros: number | null;
+  target_is_manual?: boolean;
   completed_pomodoros: number;
   is_done: boolean;
   feasibility: string | null;
@@ -54,6 +57,7 @@ export function toDayTaskViews(rows: readonly DayTaskRow[]): DayTaskView[] {
       slot: i + 1,
       title: r?.title ?? "",
       targetPomodoros: r?.target_pomodoros ?? null,
+      targetIsManual: r?.target_is_manual ?? false,
       completedPomodoros: r?.completed_pomodoros ?? 0,
       isDone: r?.is_done ?? false,
       feasibility:

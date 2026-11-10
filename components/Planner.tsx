@@ -8,6 +8,7 @@ import { fetchEstimate } from "@/lib/ai/fetch-estimate";
 import { clickBubble } from "@/lib/domain/bubbles";
 import { dayCategory } from "@/lib/domain/category";
 import { overload, totalTarget } from "@/lib/domain/overload";
+import { estimatePatch, manualTargetPatch } from "@/lib/domain/target";
 import { weekDates } from "@/lib/domain/rollover";
 import type { DayTaskView, DayView, WeekTaskView } from "@/lib/domain/views";
 import { CloseDay } from "./CloseDay";
@@ -103,12 +104,13 @@ export function Planner({
   /** Ask the AI for a target after the title is saved. Never blocks, never shows errors. */
   const requestEstimate = async (slot: number, title: string) => {
     const seq = bumpEstimate(slot);
+    const current = dayTasks.find((t) => t.slot === slot)!;
     const otherTasks = dayTasks
       .filter((t) => t.slot !== slot && t.title.trim())
       .map((t) => `${t.title.trim()}${t.targetPomodoros ? ` (${t.targetPomodoros} pomodoros)` : ""}`);
     const r = await fetchEstimate({ title, category: dayCategory(slot), otherTasks });
     if (!r || estimateSeq.current.get(slot) !== seq) return;
-    const patch = { targetPomodoros: r.targetPomodoros, feasibility: r.feasibility, feasibilityNote: r.note || null };
+    const patch = estimatePatch(current, r);
     updateDay(slot, patch);
     save(() => saveDayTask({ dayId, slot, ...patch }));
   };
@@ -120,7 +122,7 @@ export function Planner({
     if (!trimmed) {
       // Slot emptied: the old estimate no longer belongs to anything.
       bumpEstimate(slot);
-      const cleared = { targetPomodoros: null, feasibility: null, feasibilityNote: null };
+      const cleared = { targetPomodoros: null, targetIsManual: false, feasibility: null, feasibilityNote: null };
       updateDay(slot, cleared);
       save(() => saveDayTask({ dayId, slot, title, ...cleared }));
       return;
@@ -131,8 +133,9 @@ export function Planner({
 
   const commitTarget = (slot: number, targetPomodoros: number | null) => {
     bumpEstimate(slot);
-    updateDay(slot, { targetPomodoros });
-    save(() => saveDayTask({ dayId, slot, targetPomodoros }));
+    const patch = manualTargetPatch(targetPomodoros);
+    updateDay(slot, patch);
+    save(() => saveDayTask({ dayId, slot, ...patch }));
   };
 
   const plannedPomodoros = totalTarget(dayTasks.map((t) => t.targetPomodoros));

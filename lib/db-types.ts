@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "day_tasks": {
                   Row: {
-                    "completed_pomodoros": number,"day_id": string,"feasibility": string | null,"feasibility_note": string | null,"id": string,"is_done": boolean,"slot": number,"target_pomodoros": number | null,"title": string | null,"week_task_id": string | null
+                    "completed_pomodoros": number,"day_id": string,"feasibility": string | null,"feasibility_note": string | null,"id": string,"is_done": boolean,"slot": number,"target_is_manual": boolean,"target_pomodoros": number | null,"title": string | null,"week_task_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "completed_pomodoros"?: number,"day_id": string,"feasibility"?: string | null,"feasibility_note"?: string | null,"id"?: string,"is_done"?: boolean,"slot": number,"target_pomodoros"?: number | null,"title"?: string | null,"week_task_id"?: string | null
+                    "completed_pomodoros"?: number,"day_id": string,"feasibility"?: string | null,"feasibility_note"?: string | null,"id"?: string,"is_done"?: boolean,"slot": number,"target_is_manual"?: boolean,"target_pomodoros"?: number | null,"title"?: string | null,"week_task_id"?: string | null
                   }
                   Update: {
-                    "completed_pomodoros"?: number,"day_id"?: string,"feasibility"?: string | null,"feasibility_note"?: string | null,"id"?: string,"is_done"?: boolean,"slot"?: number,"target_pomodoros"?: number | null,"title"?: string | null,"week_task_id"?: string | null
+                    "completed_pomodoros"?: number,"day_id"?: string,"feasibility"?: string | null,"feasibility_note"?: string | null,"id"?: string,"is_done"?: boolean,"slot"?: number,"target_is_manual"?: boolean,"target_pomodoros"?: number | null,"title"?: string | null,"week_task_id"?: string | null
                   }
                   Relationships: [
                     {

@@ -51,7 +51,7 @@ export async function loadPlanner(
     supabase.from("week_tasks").select("slot, title, is_done").eq("week_id", weekId),
     supabase
       .from("day_tasks")
-      .select("slot, title, target_pomodoros, completed_pomodoros, is_done, feasibility, feasibility_note")
+      .select("slot, title, target_pomodoros, target_is_manual, completed_pomodoros, is_done, feasibility, feasibility_note")
       .eq("day_id", day.id),
   ]);
   if (weekTasks.error) throw weekTasks.error;

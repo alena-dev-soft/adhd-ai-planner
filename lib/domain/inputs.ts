@@ -23,6 +23,7 @@ export const dayTaskPatch = z
     slot: z.number().int().min(1).max(5),
     title: title.optional(),
     targetPomodoros: z.number().int().min(1).max(99).nullable().optional(),
+    targetIsManual: z.boolean().optional(),
     completedPomodoros: z.number().int().min(0).max(99).optional(),
     isDone: z.boolean().optional(),
     feasibility: z.enum(["yes", "warning", "no"]).nullable().optional(),
@@ -37,6 +38,7 @@ export const dayTaskPatch = z
     (p) =>
       p.title !== undefined ||
       p.targetPomodoros !== undefined ||
+      p.targetIsManual !== undefined ||
       p.completedPomodoros !== undefined ||
       p.isDone !== undefined ||
       p.feasibility !== undefined ||
@@ -69,6 +71,7 @@ export function dayTaskRow(p: z.output<typeof dayTaskPatch>) {
     slot: p.slot,
     ...(p.title !== undefined && { title: p.title }),
     ...(p.targetPomodoros !== undefined && { target_pomodoros: p.targetPomodoros }),
+    ...(p.targetIsManual !== undefined && { target_is_manual: p.targetIsManual }),
     ...(p.completedPomodoros !== undefined && { completed_pomodoros: p.completedPomodoros }),
     ...(p.isDone !== undefined && { is_done: p.isDone }),
     ...(p.feasibility !== undefined && { feasibility: p.feasibility }),
