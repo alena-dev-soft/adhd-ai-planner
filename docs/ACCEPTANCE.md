@@ -19,4 +19,4 @@ Tick each line; note anything wrong under "Fixes".
 9. [ ] Phone width (~390 px): pages stacked, week page collapsible.
 
 ## Fixes
-(list here, or tell the agent)
+None. The user accepted the MVP. The open-question answers were implemented (sign out, sticky manual target, average rating).

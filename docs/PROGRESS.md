@@ -407,3 +407,26 @@ Skipped / open:
 - Hairlines and empty-bubble outlines stay below 3:1 (decorative).
 
 Next: phase 7 (deploy) — only when asked.
+
+## MVP acceptance check
+
+- **Result: the user accepted the MVP**, with every recommended answer to the open questions (see OPEN_QUESTIONS → "Answers").
+- Checklist for the manual walkthrough: `docs/ACCEPTANCE.md`.
+- Verified by the agent:
+  - The OpenAI key works now. Live estimates came back in 1–2.5 s.
+  - The redirect allow-list sends magic links to localhost (admin `generateLink` → verify 303 → `localhost:3000/auth/callback`).
+- Changes made from the answers:
+  - **Sticky manual target.** New migration `20261110225842_day_task_target_is_manual.sql` (adds `day_tasks.target_is_manual bool not null default false`), applied to the hosted DB with `db push`. `lib/db-types.ts` was regenerated.
+    - Pure helpers `estimatePatch` / `manualTargetPatch` in `lib/domain/target.ts`, with tests. Also wired through `dayTaskPatch` and `toDayTaskViews`, and the planner query selects the column.
+  - **Sign out:** a "sign out" link in the top bar (`signOut` server action in `app/login/actions.ts`).
+  - **Review header:** shows "Average rating" (from `reviewWeek().totals.averageRating`).
+- How it was verified:
+  - `npm run lint` clean, `npm test` 91/91, `npm run test:e2e` passes.
+  - A temporary Playwright run with real AI (spec deleted afterwards, user deleted):
+    - AI target 3 ✓ → manual 7 → rename → still 7, and still 7 after reload.
+    - Clear the box → rename → the AI fills in 3.
+    - Close the day with rating 8 → the review header shows "Average rating 8 / 10".
+    - Sign out → `/login`, and `/` then redirects to `/login`.
+- Open:
+  - A real inbox magic-link email wasn't tested by the agent (the user's choice).
+  - Phase 7 (deploy) only when asked. Remember to `db push` the new migration to the cloud project too. It's already applied on the current hosted project.

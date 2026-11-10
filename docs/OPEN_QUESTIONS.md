@@ -50,3 +50,17 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
   - Still below 3:1 and left as is (decorative, not the only cue): the hairline borders #E8E3DD, empty bubble outlines, and the skyblue selected-day fill (the selection is also exposed as `aria-current`).
 - **Playwright login on hosted Supabase.** The smoke test reads the real magic-link email from Mailpit when `MAILPIT_URL` is set (local stack). This project runs on hosted Supabase without Docker, so here it gets the same link from the admin API (`generateLink`) instead. The Mailpit path hasn't been run (no Docker in the agent container).
 - **README local setup not run end to end.** `supabase start` / `db reset` need Docker, which the agent container doesn't have. The commands follow the brief and the Supabase CLI docs.
+
+## Answers (MVP acceptance, user chose "all recommendations")
+
+- **Hosted Supabase redirect allow-list:** confirmed. The user added `http://localhost:3000/**`, and the agent verified it: admin `generateLink` with `redirectTo=http://localhost:3000/auth/callback` → verify endpoint 303 → `http://localhost:3000/auth/callback` (not the Site URL). A real inbox email was not sent (user: "keep as it is").
+- **OpenAI key:** works now (live gpt-4o-mini estimates in 1–2.5 s).
+- **Sign out:** added a small "sign out" link in the top bar (server action → `/login`).
+- **Failed save:** keep "not saved" in warm, no retry.
+- **Override vs. AI mark:** a manual target keeps the last AI mark and note.
+- **Rename vs. manual target:** a manual target is sticky. New column `day_tasks.target_is_manual` (migration `…_day_task_target_is_manual.sql`, approved). Typing a target sets it; clearing the box or emptying the title resets it. On rename the AI still updates the mark and note, but not a manual target. Logic in `lib/domain/target.ts`.
+- **Closed day:** no reopen; everything stays editable.
+- **Rating:** tapping the selected rating again clears it (kept).
+- **Review header:** shows "Average rating N / 10" (one decimal), "—" when no ratings.
+- **`week_task_id`:** stays unused for the MVP.
+- **Keyboard:** Escape from a title to its row is enough; rows are not Tab stops.
