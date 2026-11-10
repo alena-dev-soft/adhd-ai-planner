@@ -265,7 +265,7 @@ Decisions:
 
 Next: phase 4 (AI estimate route, inline feasibility, target override, overload warning).
 
-## Phase 3d — Layout review against the prototype (awaiting human approval)
+## Phase 3d — Layout review against the prototype (approved)
 
 Screenshots (all in `docs/screenshots/`, regenerated from the Supabase-wired app on 2025-12-16 with prototype-like data):
 - `compare-1440.png`: prototype (left) and app (right) side by side at 1440px.
@@ -287,4 +287,4 @@ Deliberate differences from the prototype (required by the brief):
 6. **Breakpoint:** the pages sit side by side at ≥900px and stack below that (§4). The prototype stacks below 1024px. On mobile the weekly page is collapsible ("Show ▾ / Hide ▴") and collapsed by default.
 7. **Weekly Review** will be its own route `/review` (phase 5), not a toggle on the same page. **Close the day** (rating circles etc.) also comes in phase 5, so it isn't on the screenshots yet.
 
-Open: **a human needs to look at the compare images and approve or list visual fixes** (the agent can't view images; checks were DOM-based).
+Result: **the human approved the layout with no changes.** Next: phase 4 (AI).
