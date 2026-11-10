@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dayNotes, dayTaskPatch, dayTaskRow, estimateRequest, weekTaskPatch, weekTaskRow } from "./inputs";
+import {
+  dayClosePatch,
+  dayCloseRow,
+  dayNotes,
+  dayTaskPatch,
+  dayTaskRow,
+  estimateRequest,
+  weekTaskPatch,
+  weekTaskRow,
+} from "./inputs";
 
 const id = "7f1c7a52-6a2b-4d8e-9c1a-2b3c4d5e6f70";
 
@@ -92,5 +101,30 @@ describe("estimateRequest", () => {
     expect(estimateRequest.safeParse({ title: "  ", category: "important" }).success).toBe(false);
     expect(estimateRequest.safeParse({ title: "a", category: "urgent" }).success).toBe(false);
     expect(estimateRequest.safeParse({ title: "a", category: "secondary", otherTasks: Array(11).fill("x") }).success).toBe(false);
+  });
+});
+
+describe("dayClosePatch", () => {
+  const dayId = "00000000-0000-4000-8000-000000000001";
+
+  it("trims text, empty → null, and maps only present columns", () => {
+    const p = dayClosePatch.parse({ dayId, highlight: "  shipped it ", whatDidnt: "   " });
+    expect(dayCloseRow(p)).toEqual({ highlight: "shipped it", what_didnt: null });
+  });
+
+  it("accepts rating 1–10 and null, rejects others", () => {
+    expect(dayCloseRow(dayClosePatch.parse({ dayId, rating: 10 }))).toEqual({ rating: 10 });
+    expect(dayCloseRow(dayClosePatch.parse({ dayId, rating: null }))).toEqual({ rating: null });
+    expect(dayClosePatch.safeParse({ dayId, rating: 0 }).success).toBe(false);
+    expect(dayClosePatch.safeParse({ dayId, rating: 11 }).success).toBe(false);
+    expect(dayClosePatch.safeParse({ dayId, rating: 2.5 }).success).toBe(false);
+  });
+
+  it("accepts close alone, rejects an empty patch or a bad id", () => {
+    const p = dayClosePatch.parse({ dayId, close: true });
+    expect(p.close).toBe(true);
+    expect(dayCloseRow(p)).toEqual({});
+    expect(dayClosePatch.safeParse({ dayId }).success).toBe(false);
+    expect(dayClosePatch.safeParse({ dayId: "x", rating: 3 }).success).toBe(false);
   });
 });

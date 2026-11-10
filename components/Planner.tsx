@@ -10,6 +10,7 @@ import { dayCategory } from "@/lib/domain/category";
 import { overload, totalTarget } from "@/lib/domain/overload";
 import { weekDates } from "@/lib/domain/rollover";
 import type { DayTaskView, DayView, WeekTaskView } from "@/lib/domain/views";
+import { CloseDay } from "./CloseDay";
 import { Notes } from "./Notes";
 import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
@@ -267,6 +268,16 @@ export function Planner({
           </p>
 
           <Notes value={notes} onChange={changeNotes} onBlur={flushNotes} />
+
+          <CloseDay
+            dayId={dayId}
+            highlight={dayData.highlight}
+            whatWorked={dayData.whatWorked}
+            whatDidnt={dayData.whatDidnt}
+            rating={dayData.rating}
+            closedAt={dayData.closedAt}
+            save={save}
+          />
         </Page>
       </div>
     </main>

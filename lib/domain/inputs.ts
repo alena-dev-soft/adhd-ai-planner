@@ -84,3 +84,44 @@ export const estimateRequest = z.object({
 });
 
 export type EstimateRequest = z.input<typeof estimateRequest>;
+
+/** Free text of the close-the-day panel: trimmed, empty → null. */
+const closeText = z
+  .string()
+  .max(5000)
+  .transform((s) => s.trim() || null);
+
+/**
+ * Patch for the "Close the day" panel. `close: true` marks the day closed
+ * (closed_at is set once and never moved). At least one field.
+ */
+export const dayClosePatch = z
+  .object({
+    dayId: z.uuid(),
+    highlight: closeText.optional(),
+    whatWorked: closeText.optional(),
+    whatDidnt: closeText.optional(),
+    rating: z.number().int().min(1).max(10).nullable().optional(),
+    close: z.literal(true).optional(),
+  })
+  .refine(
+    (p) =>
+      p.highlight !== undefined ||
+      p.whatWorked !== undefined ||
+      p.whatDidnt !== undefined ||
+      p.rating !== undefined ||
+      p.close !== undefined,
+    "empty patch",
+  );
+
+export type DayClosePatch = z.input<typeof dayClosePatch>;
+
+/** Columns of `days` to update for a close patch (without closed_at). */
+export function dayCloseRow(p: z.output<typeof dayClosePatch>) {
+  return {
+    ...(p.highlight !== undefined && { highlight: p.highlight }),
+    ...(p.whatWorked !== undefined && { what_worked: p.whatWorked }),
+    ...(p.whatDidnt !== undefined && { what_didnt: p.whatDidnt }),
+    ...(p.rating !== undefined && { rating: p.rating }),
+  };
+}
