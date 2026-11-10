@@ -228,3 +228,39 @@ Decisions:
 - No `server-only` package (not on the allowed list); `lib/planner.ts` is only imported by server components.
 
 Next: Server Actions for autosave (week task title/done, day task title/bubbles/done, notes debounce 800ms) + the "saved" indicator.
+
+## Phase 3c — Server Actions and autosave
+
+What was done:
+- `lib/domain/inputs.ts` (pure, with tests): zod schemas for `weekTaskPatch` (weekId uuid, slot 1–12, title?, isDone?), `dayTaskPatch` (dayId uuid, slot 1–5, title?, targetPomodoros 1–99 | null?, completedPomodoros 0–99?, isDone?) and `dayNotes` (≤20000 chars).
+  - Titles are trimmed, max 500 characters; an empty title is stored as `null`. A patch with no fields is rejected.
+  - `weekTaskRow` / `dayTaskRow` map only the fields that are present to columns, so a partial upsert never overwrites the other columns.
+- `app/actions.ts` (Server Actions):
+  - `saveWeekTask` and `saveDayTask` upsert by `(week_id, slot)` / `(day_id, slot)`. `saveNotes` updates `days.notes` by id.
+  - They use the RLS cookie client, so a foreign weekId/dayId just fails. `saveNotes` treats 0 updated rows as a failure.
+  - They return `{ ok }` and never throw, so the page can't crash on a failed save.
+- `lib/use-saver.ts` (client hook):
+  - Runs saves one after another, so rapid bubble clicks arrive in order.
+  - Exposes one status: `saving…` / `saved` / `not saved` (warm). It is shown as small text in the top bar next to Review. This is the only feedback.
+- `Planner` gets `weekId` / `dayId` from `loadPlanner`.
+  - **Titles** save on blur, only if the trimmed value changed. **Enter** moves focus to the next slot's input (`#week-task-N`, `#day-task-N`), and that blur saves. On the last slot, Enter blurs. IME composition is ignored.
+  - **Checkboxes** save immediately. **Bubbles** use `clickBubble` and save `completed_pomodoros` immediately.
+  - **Notes** save after an 800ms debounce. They also flush on blur and on unmount, i.e. when switching day or week before the timer fires.
+- `TaskRow` gets `inputId` / `nextInputId` / `onTitleCommit`, `Notes` gets `onBlur`, and `TopBar` gets a `status` slot.
+- Target pomodoros: the action accepts it already. The UI box stays read-only until phase 4 (override + AI). No AI call is wired yet; the AI estimate hook goes in `commitDayTitle` later.
+
+How it was verified:
+- `eslint` is clean and `vitest` is green (61).
+- I ran a headless Playwright script (in /tmp, not a project dependency) against `npm run dev` with the hosted Supabase project, as a throwaway user (deleted afterwards):
+  - Enter moves focus week-task-1→2 and day-task-1→2; Enter on the last slot blurs.
+  - Typed week tasks 1–2 (2 done) and day tasks 1, 2, 5 on 2025-12-16. Clicked bubbles 1–5, then 5 again → actual 4. Checked day task 1 and wrote notes. The status went `saving…` → `saved`.
+  - Reload → all values persisted.
+  - Switched to Wed 12-17 via the selector: week tasks were shared, and day tasks and notes were empty. Typed Wed data and clicked back to Tue **before** the 800ms debounce fired → Wed notes were still saved (flush on unmount). Tue data was intact.
+  - Next week (12-22) was empty. A week task written there didn't show in the 12-15 week and vice versa, and both survived reloads.
+  - No console errors.
+
+Decisions:
+- Titles save on blur/Enter, not on every keystroke. Notes are debounced instead.
+- Failed saves show "not saved" in the warm color. The brief only names "saved", but silently losing data seemed worse. → listed in OPEN_QUESTIONS.
+
+Next: phase 4 (AI estimate route, inline feasibility, target override, overload warning).

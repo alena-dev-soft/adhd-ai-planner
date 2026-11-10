@@ -20,3 +20,7 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 
 - **Sign out.** The brief doesn't list a sign-out control, so none was added. Sessions last until the cookie expires or is cleared. Should a small "sign out" link go in the top bar?
 - **Real magic-link email not verified by the agent** (hosted SMTP, rate limit). Only the admin `generateLink` → `token_hash` path was tested. The user needs to test the email path once and confirm that the dashboard redirect allow-list contains `http://localhost:3000/**`.
+
+## Phase 3c
+
+- **Failed save feedback.** The brief allows only a small "saved" indicator. When a save fails (network/RLS), the indicator says "not saved" in warm instead of staying silent. There is no retry: the next edit saves the full field again. Is that OK?
