@@ -7,7 +7,7 @@ Tick each line; note anything wrong under "Fixes".
 - [x] `npm run lint` clean, `npm test` 83/83 green.
 - [x] OpenAI: key now works (gpt-4o-mini, live estimates in 1–2.5 s, e.g. "Fix ABC database migration" → 3, warning).
 
-## Walkthrough (human)
+## Walkthrough (human — accepted by the user)
 1. [ ] Login: magic link email arrives in your real inbox and opens the planner (redirect allow-list contains `http://localhost:3000/**`).
 2. [ ] Week page: type 5 important + a few secondary tasks, Enter moves to the next slot; check one off.
 3. [ ] Day page: type tasks with Enter. With AI: target fills and ✓/⚠/✕ mark + note appear within ~5 s. Without AI: task saves, target stays empty, no error.
