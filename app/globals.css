@@ -1,26 +1,23 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Design tokens (CLAUDE.md section 4). Use as bg-cream, text-ink, border-sage, ... */
+@theme {
+  --color-cream: #f5f3ef;
+  --color-paper: #fbfaf7;
+  --color-ink: #2c2c2c;
+  --color-sage: #a8c48f;
+  --color-skyblue: #b8c5d6;
+  --color-warm: #d4a574;
+  --color-muted: #9a9a9a;
+  /* Hairlines from the prototype */
+  --color-line: #e8e3dd;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  line-height: 1.8;
 }
