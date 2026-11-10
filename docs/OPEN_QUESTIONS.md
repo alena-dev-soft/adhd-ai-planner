@@ -15,3 +15,8 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 - **Checking a task disables its input.** The prototype sets `disabled` (greyed and struck through) on check. → **Brief:** the day stays editable. Checking marks the task done visually, but the title stays editable.
 - **Navigation.** The prototype has "Daily Planner / Weekly Review" toggle buttons and a full-name day button row. → **Brief:** top bar with `‹ Week of DD MMM ›`, a Mon–Sun selector and a link to `/review` (a separate route).
 - **Weekly review content.** The prototype shows a completion % and star ratings. → **Brief:** per day show done / not done / highlight / rating / pomodoros (done vs target). No % badge, no stars; rating is shown as a number.
+
+## Phase 1
+
+- **Sign out.** The brief doesn't list a sign-out control, so none was added. Sessions last until the cookie expires or is cleared. Should a small "sign out" link go in the top bar?
+- **Real magic-link email not verified by the agent** (hosted SMTP, rate limit). Only the admin `generateLink` → `token_hash` path was tested. The user needs to test the email path once and confirm that the dashboard redirect allow-list contains `http://localhost:3000/**`.

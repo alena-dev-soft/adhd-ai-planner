@@ -32,3 +32,32 @@ What was done:
 How it was verified: files committed; `git show --stat` lists them.
 
 Skipped: nothing. No app code yet (phase 1 is next).
+
+## Phase 1 — Skeleton
+
+What was done:
+- Next.js **16.4** app (App Router, TypeScript strict, ESLint, Tailwind v4 via `@tailwindcss/turbopack`), scaffolded with `create-next-app` into the repo root.
+  - Next 16 renamed `middleware.ts` to **`proxy.ts`** (root). It calls `lib/supabase/middleware.ts#updateSession`, which refreshes the session (`getClaims()`) and redirects to `/login` when there is no user. Public paths: `/login`, `/auth/*`.
+  - **Decision:** removed `cacheComponents` / `partialPrefetching` from the template's `next.config.ts`. The app is fully per-user and dynamic. With Cache Components on, every cookie read needs its own Suspense boundary. Without it, the pages stay plain dynamic server components.
+  - `AGENTS.md` (written by `next dev`) is committed so the tree stays clean. It says to read `node_modules/next/dist/docs/` before using Next APIs.
+- Design tokens are in `app/globals.css` `@theme` (Tailwind v4 has no `tailwind.config`): `cream paper ink sage skyblue warm muted`, plus `line` (#e8e3dd, the hairline colour from the prototype) and `font-serif` (Georgia).
+- Supabase: `@supabase/ssr` + `@supabase/supabase-js`. Clients are in `lib/supabase/{client,server,middleware}.ts`, and public env is in `lib/supabase/env.ts`.
+  - `next.config.ts` `env` sets `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` and falls back to the `SUPABASE_URL` / `SUPABASE_ANON_KEY` secrets. **It uses only the URL origin**, so the `/rest/v1/` suffix on the secret doesn't matter. Values are inlined at build/dev start.
+- `/login`: email field → Server Action `sendMagicLink` (zod email check, `signInWithOtp` with `emailRedirectTo=<origin>/auth/callback`). The style is paper-like. On success the page shows "Check your email…".
+- `/auth/callback`: handles both `?code=` (PKCE, default email template) and `?token_hash=&type=` (`verifyOtp`). `next` is sanitised by `lib/safe-next.ts`. On failure it redirects to `/login`.
+- `/`: empty two-page planner shell behind auth (side by side at ≥900px, stacked below). The real layout comes in phase 3.
+- `supabase init` → `supabase/config.toml` (local stack config only). Set `site_url = http://localhost:3000` and the redirect allow-list to `http://localhost:3000/**` and `http://127.0.0.1:3000/**`. The local mail catcher (`[local_smtp]`, port 54324) is enabled by default. **We don't use it**, because the project runs on hosted Supabase (step 0 decision).
+- Vitest: `npm test` (= `vitest run`), config `vitest.config.mts`, tests `lib/**/*.test.ts`. First test: `lib/safe-next.test.ts`.
+- `scripts/dev-login-link.mjs`: uses the admin API (`generateLink`) to print a one-time `/auth/callback?token_hash=…` sign-in URL. No email is sent. Use it for dev and later for the Playwright smoke test.
+- Deps added: `@supabase/ssr`, `@supabase/supabase-js`, `zod`, dev `vitest`. Bumped `@types/node` to ^22 because vitest 5 has a peer requirement on it.
+- `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, plus the optional script/test vars. `.env.local` is gitignored (`.env*.local`).
+
+How it was verified (agent container, hosted Supabase):
+- `npm run lint` clean, `npm test` 2/2 green, `npm run build` ok (routes `/`, `/login`, `/auth/callback`, Proxy).
+- `npm run dev`: `GET /` without a session → 307 to `/login`. `/login` → 200.
+- The magic-link flow ran against the hosted project. `generateLink` (admin API) → `GET /auth/callback?token_hash=…&type=…` → sets the `sb-…-auth-token` cookie → 307 to `/`. `GET /` with that cookie → 200 with the planner shell. A bad token → `/login`. `next=//evil.com` → not followed. The test users were deleted afterwards.
+
+Skipped / not verified:
+- Supabase `start` / Mailpit: not used (hosted project, no Docker).
+- **The real email (PKCE `?code=`) path was not tested end-to-end.** It would send a real email, and the hosted SMTP is rate-limited. The user should check it once: open `/login`, enter your own email, and click the link. If the link lands on the Supabase Site URL instead of `localhost:3000/auth/callback`, add `http://localhost:3000/**` under Auth → URL Configuration.
+- No sign-out button (not in the brief). See OPEN_QUESTIONS.
