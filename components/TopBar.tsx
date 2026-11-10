@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { plannerHref } from "@/lib/domain/selection";
 
@@ -11,6 +12,7 @@ export function TopBar({
   today,
   prevWeekHref,
   nextWeekHref,
+  status,
 }: {
   weekStart: string;
   dates: string[];
@@ -18,6 +20,7 @@ export function TopBar({
   today: string;
   prevWeekHref: string;
   nextWeekHref: string;
+  status?: ReactNode;
 }) {
   const arrow = "px-2 text-lg leading-none text-muted hover:text-ink";
   return (
@@ -57,12 +60,15 @@ export function TopBar({
         })}
       </div>
 
-      <Link
-        href={`/review?week=${weekStart}`}
-        className="text-xs uppercase tracking-[1px] underline decoration-skyblue underline-offset-4"
-      >
-        Review
-      </Link>
+      <div className="flex items-center gap-4">
+        {status}
+        <Link
+          href={`/review?week=${weekStart}`}
+          className="text-xs uppercase tracking-[1px] underline decoration-skyblue underline-offset-4"
+        >
+          Review
+        </Link>
+      </div>
     </nav>
   );
 }

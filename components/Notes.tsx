@@ -2,9 +2,11 @@
 export function Notes({
   value,
   onChange,
+  onBlur,
 }: {
   value: string;
   onChange?: (value: string) => void;
+  onBlur?: () => void;
 }) {
   return (
     <div className="mt-8 border-t border-line pt-5">
@@ -17,6 +19,7 @@ export function Notes({
         placeholder="Notes…"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        onBlur={() => onBlur?.()}
         className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage"
       />
     </div>

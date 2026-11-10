@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import type { KeyboardEvent } from "react";
 import type { Feasibility } from "@/lib/domain/overload";
 import { Bubbles } from "./Bubbles";
 
@@ -14,6 +15,15 @@ const titleInput =
   "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-sage";
 const checkbox = "size-[18px] shrink-0 cursor-pointer accent-sage";
 
+/** Enter moves focus to the next slot (or leaves the last one); blur saves. */
+function enterToNext(e: KeyboardEvent<HTMLInputElement>, nextId: string | undefined) {
+  if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+  e.preventDefault();
+  const next = nextId ? document.getElementById(nextId) : null;
+  if (next) next.focus();
+  else e.currentTarget.blur();
+}
+
 function SlotNumber({ slot }: { slot: number }) {
   return <span className="min-w-6 text-[0.9rem] tabular-nums text-muted">{slot}.</span>;
 }
@@ -23,13 +33,19 @@ export function WeekTaskRow({
   slot,
   title,
   isDone,
+  inputId,
+  nextInputId,
   onTitleChange,
+  onTitleCommit,
   onToggleDone,
 }: {
   slot: number;
   title: string;
   isDone: boolean;
+  inputId?: string;
+  nextInputId?: string;
   onTitleChange?: (title: string) => void;
+  onTitleCommit?: () => void;
   onToggleDone?: () => void;
 }) {
   return (
@@ -37,10 +53,13 @@ export function WeekTaskRow({
       <SlotNumber slot={slot} />
       <input
         type="text"
+        id={inputId}
         aria-label={`Week task ${slot}`}
         placeholder="Task"
         value={title}
         onChange={(e) => onTitleChange?.(e.target.value)}
+        onKeyDown={(e) => enterToNext(e, nextInputId)}
+        onBlur={() => onTitleCommit?.()}
         className={clsx(titleInput, isDone && "text-muted line-through")}
       />
       <input
@@ -79,7 +98,10 @@ export function DayTaskRow({
   isDone,
   feasibility,
   feasibilityNote,
+  inputId,
+  nextInputId,
   onTitleChange,
+  onTitleCommit,
   onBubbleClick,
   onToggleDone,
 }: {
@@ -90,7 +112,10 @@ export function DayTaskRow({
   isDone: boolean;
   feasibility: Feasibility | null;
   feasibilityNote: string | null;
+  inputId?: string;
+  nextInputId?: string;
   onTitleChange?: (title: string) => void;
+  onTitleCommit?: () => void;
   onBubbleClick?: (n: number) => void;
   onToggleDone?: () => void;
 }) {
@@ -101,10 +126,13 @@ export function DayTaskRow({
         <SlotNumber slot={slot} />
         <input
           type="text"
+          id={inputId}
           aria-label={`Day task ${slot}`}
           placeholder="Task"
           value={title}
           onChange={(e) => onTitleChange?.(e.target.value)}
+          onKeyDown={(e) => enterToNext(e, nextInputId)}
+          onBlur={() => onTitleCommit?.()}
           className={clsx(titleInput, isDone && "text-muted line-through")}
         />
       </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import clsx from "clsx";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { saveDayTask, saveNotes, saveWeekTask } from "@/app/actions";
 import { format, parseISO } from "date-fns";
 import { clickBubble } from "@/lib/domain/bubbles";
 import { weekDates } from "@/lib/domain/rollover";
@@ -11,6 +12,16 @@ import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
 import { DayTaskRow, WeekTaskRow } from "./TaskRow";
 import { TopBar } from "./TopBar";
+import { useSaver, type SaveStatus } from "@/lib/use-saver";
+
+const NOTES_DEBOUNCE_MS = 800;
+
+const STATUS_TEXT: Record<SaveStatus, string> = {
+  idle: "",
+  saving: "saving…",
+  saved: "saved",
+  error: "not saved",
+};
 
 const WEEK_SECTIONS = [
   { title: "Five Most Important Tasks of the Week", subtitle: "If these are the only tasks you completed during the week, you'd be satisfied", slots: [1, 2, 3, 4, 5] },
@@ -25,8 +36,9 @@ const DAY_SECTIONS = [
 ];
 
 /**
- * Two facing pages. Week and day come from the URL (server-loaded); task and
- * notes edits are local state until the Server Actions are wired.
+ * Two facing pages. Week and day come from the URL (server-loaded). Every edit
+ * autosaves through Server Actions: titles on blur / Enter, checkboxes and
+ * bubbles immediately, notes after an 800ms pause.
  */
 export function Planner({
   weekStart,
@@ -34,6 +46,8 @@ export function Planner({
   today,
   prevWeekHref,
   nextWeekHref,
+  weekId,
+  dayId,
   weekTasks: initialWeekTasks,
   dayTasks: initialDayTasks,
   day: dayData,
@@ -43,6 +57,8 @@ export function Planner({
   today: string;
   prevWeekHref: string;
   nextWeekHref: string;
+  weekId: string;
+  dayId: string;
   weekTasks: WeekTaskView[];
   dayTasks: DayTaskView[];
   day: DayView;
@@ -57,8 +73,46 @@ export function Planner({
 
   const updateWeek = (slot: number, patch: Partial<WeekTaskView>) =>
     setWeekTasks((ts) => ts.map((t) => (t.slot === slot ? { ...t, ...patch } : t)));
-  const updateDay = (slot: number, patch: (t: DayTaskView) => Partial<DayTaskView>) =>
-    setDayTasks((ts) => ts.map((t) => (t.slot === slot ? { ...t, ...patch(t) } : t)));
+  const updateDay = (slot: number, patch: Partial<DayTaskView>) =>
+    setDayTasks((ts) => ts.map((t) => (t.slot === slot ? { ...t, ...patch } : t)));
+
+  const { status, save } = useSaver();
+
+  // Last saved titles per slot, so blur only saves real changes.
+  const savedWeekTitles = useRef(new Map(initialWeekTasks.map((t) => [t.slot, t.title.trim()])));
+  const savedDayTitles = useRef(new Map(initialDayTasks.map((t) => [t.slot, t.title.trim()])));
+
+  const commitWeekTitle = (slot: number, title: string) => {
+    const trimmed = title.trim();
+    if (savedWeekTitles.current.get(slot) === trimmed) return;
+    savedWeekTitles.current.set(slot, trimmed);
+    save(() => saveWeekTask({ weekId, slot, title }));
+  };
+  const commitDayTitle = (slot: number, title: string) => {
+    const trimmed = title.trim();
+    if (savedDayTitles.current.get(slot) === trimmed) return;
+    savedDayTitles.current.set(slot, trimmed);
+    save(() => saveDayTask({ dayId, slot, title }));
+  };
+
+  // Notes: debounce 800ms; flush on blur and when leaving the day.
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingNotes = useRef<string | null>(null);
+  const flushNotes = useCallback(() => {
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = null;
+    const value = pendingNotes.current;
+    if (value === null) return;
+    pendingNotes.current = null;
+    save(() => saveNotes({ dayId, notes: value }));
+  }, [dayId, save]);
+  const changeNotes = (value: string) => {
+    setNotes(value);
+    pendingNotes.current = value;
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = setTimeout(flushNotes, NOTES_DEBOUNCE_MS);
+  };
+  useEffect(() => flushNotes, [flushNotes]);
 
   return (
     <main className="mx-auto max-w-[1400px] p-3 min-[900px]:p-5">
@@ -69,6 +123,14 @@ export function Planner({
         today={today}
         prevWeekHref={prevWeekHref}
         nextWeekHref={nextWeekHref}
+        status={
+          <span
+            role="status"
+            className={clsx("min-w-16 text-right text-xs", status === "error" ? "text-warm" : "text-muted")}
+          >
+            {STATUS_TEXT[status]}
+          </span>
+        }
       />
 
       <div className="grid grid-cols-1 overflow-hidden bg-paper shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
@@ -100,8 +162,15 @@ export function Planner({
                       slot={slot}
                       title={t.title}
                       isDone={t.isDone}
+                      inputId={`week-task-${slot}`}
+                      nextInputId={slot < 12 ? `week-task-${slot + 1}` : undefined}
                       onTitleChange={(title) => updateWeek(slot, { title })}
-                      onToggleDone={() => updateWeek(slot, { isDone: !t.isDone })}
+                      onTitleCommit={() => commitWeekTitle(slot, t.title)}
+                      onToggleDone={() => {
+                        const isDone = !t.isDone;
+                        updateWeek(slot, { isDone });
+                        save(() => saveWeekTask({ weekId, slot, isDone }));
+                      }}
                     />
                   );
                 })}
@@ -129,18 +198,27 @@ export function Planner({
                   <DayTaskRow
                     key={slot}
                     {...t}
-                    onTitleChange={(title) => updateDay(slot, () => ({ title }))}
-                    onBubbleClick={(n) =>
-                      updateDay(slot, (x) => ({ completedPomodoros: clickBubble(x.completedPomodoros, n) }))
-                    }
-                    onToggleDone={() => updateDay(slot, (x) => ({ isDone: !x.isDone }))}
+                    inputId={`day-task-${slot}`}
+                    nextInputId={slot < 5 ? `day-task-${slot + 1}` : undefined}
+                    onTitleChange={(title) => updateDay(slot, { title })}
+                    onTitleCommit={() => commitDayTitle(slot, t.title)}
+                    onBubbleClick={(n) => {
+                      const completedPomodoros = clickBubble(t.completedPomodoros, n);
+                      updateDay(slot, { completedPomodoros });
+                      save(() => saveDayTask({ dayId, slot, completedPomodoros }));
+                    }}
+                    onToggleDone={() => {
+                      const isDone = !t.isDone;
+                      updateDay(slot, { isDone });
+                      save(() => saveDayTask({ dayId, slot, isDone }));
+                    }}
                   />
                 );
               })}
             </Section>
           ))}
 
-          <Notes value={notes} onChange={setNotes} />
+          <Notes value={notes} onChange={changeNotes} onBlur={flushNotes} />
         </Page>
       </div>
     </main>

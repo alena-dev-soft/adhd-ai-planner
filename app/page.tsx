@@ -31,6 +31,8 @@ export default async function PlannerPage({ searchParams }: { searchParams: Sear
       today={today}
       prevWeekHref={plannerHref(shiftWeek(weekStart, -1, today).date)}
       nextWeekHref={plannerHref(shiftWeek(weekStart, 1, today).date)}
+      weekId={data.weekId}
+      dayId={data.dayId}
       weekTasks={data.weekTasks}
       dayTasks={data.dayTasks}
       day={data.day}
