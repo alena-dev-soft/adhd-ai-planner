@@ -6,3 +6,12 @@
   - Auth → URL Configuration in the dashboard must allow `http://localhost:3000/**` (and later the Vercel URL) as a redirect URL. We couldn't check this with the keys we have; the user needs to confirm it.
 - **`SUPABASE_URL` secret has `/rest/v1/` on the end.** Either the user fixes the secret, or the code uses `new URL(...).origin`.
 - **Env var names.** Client-side Supabase needs `NEXT_PUBLIC_*` vars. Phase 1 should map `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` from these values (e.g. in `next.config`) or add them to `.env.local`.
+
+## Prototype vs. brief (resolved by the brief)
+
+Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → the brief wins.
+
+- **Task row controls.** The prototype shows 3 bubbles and no target/actual boxes. → **Brief:** row = number · underline input · target box · 5 bubbles · actual box · checkbox (plus AI feasibility mark). Over 5 completed → "+N".
+- **Checking a task disables its input.** The prototype sets `disabled` (greyed and struck through) on check. → **Brief:** the day stays editable. Checking marks the task done visually, but the title stays editable.
+- **Navigation.** The prototype has "Daily Planner / Weekly Review" toggle buttons and a full-name day button row. → **Brief:** top bar with `‹ Week of DD MMM ›`, a Mon–Sun selector and a link to `/review` (a separate route).
+- **Weekly review content.** The prototype shows a completion % and star ratings. → **Brief:** per day show done / not done / highlight / rating / pomodoros (done vs target). No % badge, no stars; rating is shown as a number.

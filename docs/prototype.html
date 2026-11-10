@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADHD Planner - Productivity Planner Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cream: #F5F3EF;
+            --dark: #2C2C2C;
+            --sage: #A8C48F;
+            --skyblue: #B8C5D6;
+            --warm: #D4A574;
+            --light-gray: #f0ede8;
+            --border-gray: #e8e3dd;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: #f5f5f5;
+            color: var(--dark);
+            line-height: 1.8;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            background-color: var(--sage);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .nav-btn:hover {
+            background-color: #92b374;
+        }
+
+        .nav-btn.active {
+            background-color: var(--dark);
+        }
+
+        .pages {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .page {
+            padding: 60px 40px;
+            min-height: 900px;
+            background-color: var(--cream);
+            border-right: 2px solid var(--border-gray);
+            position: relative;
+        }
+
+        .page:last-child {
+            border-right: none;
+        }
+
+        .page-title {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .week-of {
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 30px;
+        }
+
+        .date-header {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        .day-name {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #999;
+            text-align: right;
+        }
+
+        .quote {
+            font-style: italic;
+            font-size: 0.95rem;
+            color: var(--dark);
+            margin: 30px 0;
+            line-height: 1.8;
+            text-align: center;
+            border-top: 1px solid var(--border-gray);
+            border-bottom: 1px solid var(--border-gray);
+            padding: 20px 0;
+        }
+
+        .quote-author {
+            font-style: normal;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-weight: normal;
+        }
+
+        .section-subtitle {
+            font-size: 0.75rem;
+            color: #999;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .task-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+
+        .task-number {
+            font-size: 0.9rem;
+            color: #999;
+            min-width: 20px;
+        }
+
+        .task-input {
+            flex: 1;
+            border: none;
+            border-bottom: 1px solid var(--border-gray);
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.95rem;
+            padding: 4px 0;
+            color: var(--dark);
+        }
+
+        .task-input:focus {
+            outline: none;
+            border-bottom-color: var(--sage);
+        }
+
+        .task-input:disabled {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .task-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--sage);
+        }
+
+        .pomodoro-tracker {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pomodoro-circle {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .pomodoro-circle:hover {
+            background-color: var(--light-gray);
+        }
+
+        .pomodoro-circle.filled {
+            background-color: var(--sage);
+            border-color: var(--sage);
+        }
+
+        .feasibility {
+            font-size: 0.75rem;
+            min-width: 10px;
+        }
+
+        .notes-section {
+            border-top: 1px solid var(--border-gray);
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+
+        .notes-title {
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            border: 1px solid var(--border-gray);
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 10px;
+            min-height: 80px;
+            resize: vertical;
+            color: var(--dark);
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: var(--sage);
+        }
+
+        .rating-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-gray);
+        }
+
+        .rating-label {
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--dark);
+            margin-bottom: 12px;
+        }
+
+        .rating-circles {
+            display: flex;
+            gap: 8px;
+        }
+
+        .rating-circle {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+        }
+
+        .rating-circle:hover {
+            border-color: var(--sage);
+        }
+
+        .rating-circle.selected {
+            background-color: var(--sage);
+            color: white;
+            border-color: var(--sage);
+        }
+
+        .weekly-review {
+            display: none;
+        }
+
+        .weekly-review.active {
+            display: block;
+        }
+
+        .review-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .review-day {
+            border: 1px solid var(--border-gray);
+            padding: 20px;
+            background: white;
+        }
+
+        .review-day-header {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-stats {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .review-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-gray);
+        }
+
+        .review-section-title {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .review-completed-tasks,
+        .review-incomplete-tasks,
+        .review-highlights {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+
+        .completed-item {
+            color: var(--sage);
+            margin: 4px 0;
+        }
+
+        .incomplete-item {
+            color: #999;
+            margin: 4px 0;
+        }
+
+        .rating-display {
+            font-size: 1.2rem;
+            color: var(--warm);;
+            margin: 8px 0;
+        }
+
+        @media (max-width: 1024px) {
+            .pages {
+                grid-template-columns: 1fr;
+            }
+
+            .page {
+                border-right: none;
+                border-bottom: 2px solid var(--border-gray);
+            }
+
+            .page:last-child {
+                border-bottom: none;
+            }
+        }
+
+        .page-hidden {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .toggle-day {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .day-btn {
+            padding: 6px 12px;
+            background-color: var(--light-gray);
+            border: 1px solid var(--border-gray);
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .day-btn:hover {
+            border-color: var(--sage);
+        }
+
+        .day-btn.selected {
+            background-color: var(--sage);
+            color: white;
+            border-color: var(--sage);
+        }
+
+        .add-task-btn {
+            padding: 6px 12px;
+            background-color: transparent;
+            border: 1px solid var(--sage);
+            color: var(--sage);
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 3px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .add-task-btn:hover {
+            background-color: rgba(168, 196, 143, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <button class="nav-btn active" onclick="showMode('daily')">Daily Planner</button>
+            <button class="nav-btn" onclick="showMode('weekly')">Weekly Review</button>
+        </div>
+
+        <!-- Day Selector for Daily View -->
+        <div id="daySelector" class="toggle-day" style="text-align: center;">
+            <button class="day-btn selected" onclick="selectDay(this, 'Monday')">Monday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Tuesday')">Tuesday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Wednesday')">Wednesday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Thursday')">Thursday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Friday')">Friday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Saturday')">Saturday</button>
+            <button class="day-btn" onclick="selectDay(this, 'Sunday')">Sunday</button>
+        </div>
+
+        <!-- Daily Planner View -->
+        <div id="dailyView" class="pages">
+            <!-- Left Page: Weekly Planning -->
+            <div class="page">
+                <div class="page-title">Weekly Planning</div>
+                <div class="week-of">Week of ___/___/20____</div>
+
+                <!-- Five Most Important Tasks -->
+                <div class="section">
+                    <div class="section-title">Five Most Important Tasks of the Week</div>
+                    <div class="section-subtitle">"If these are the only tasks you completed during the week, you'd be satisfied"</div>
+                    
+                    <div class="task-item">
+                        <div class="task-number">1.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Fix ABC system database migration">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">2.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Complete CPC code review and documentation">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">3.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Deploy tariff system to production">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">4.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">5.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                    </div>
+                </div>
+
+                <!-- Secondary Tasks -->
+                <div class="section">
+                    <div class="section-title">Tasks of Secondary Importance</div>
+                    <div class="section-subtitle">"Do these only after you have completed the above tasks"</div>
+                    
+                    <div class="task-item">
+                        <div class="task-number">6.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Team sync with Kevin and Peter">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">7.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Update project documentation">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">8.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Code cleanup and refactoring">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">9.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">10.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                    </div>
+                </div>
+
+                <!-- Additional Tasks -->
+                <div class="section">
+                    <div class="section-title">Additional Tasks</div>
+                    <div class="section-subtitle">"Do these only after you have completed the above tasks"</div>
+                    
+                    <div class="task-item">
+                        <div class="task-number">11.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Check emails and Slack">
+                    </div>
+                    <div class="task-item">
+                        <div class="task-number">12.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Page: Daily -->
+            <div class="page">
+                <div class="page-title" id="dayPageTitle">Daily</div>
+                <div class="date-header">
+                    Date <span id="dateSpan">16</span> / 12 / 2025
+                </div>
+                <div class="day-name" id="dayName">Monday</div>
+
+                <!-- Quote -->
+                <div id="quoteContainer" class="quote">
+                    <div>"Do the hard jobs first. The easy jobs will take care of themselves."</div>
+                    <div class="quote-author">— Dale Carnegie</div>
+                </div>
+
+                <!-- Most Important Task -->
+                <div class="section">
+                    <div class="section-title">Most Important Task of the Day</div>
+                    <div class="section-subtitle">"If this was the only thing you did today you'd be satisfied"</div>
+                    
+                    <div class="task-item" style="align-items: center;">
+                        <div class="task-number">1.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Fix ABC database" disabled>
+                        <div class="task-controls">
+                            <input type="checkbox" class="checkbox-input" onchange="toggleTask(this)">
+                            <div class="pomodoro-tracker">
+                                <div class="pomodoro-circle filled" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle filled" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                            </div>
+                            <div class="feasibility">✓</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Tasks -->
+                <div class="section">
+                    <div class="section-title">Secondary Tasks of Importance</div>
+                    <div class="section-subtitle">"Completion of these tasks will make the day even better"</div>
+                    
+                    <div class="task-item" style="align-items: center;">
+                        <div class="task-number">2.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Review CPC codes" disabled>
+                        <div class="task-controls">
+                            <input type="checkbox" class="checkbox-input" onchange="toggleTask(this)">
+                            <div class="pomodoro-tracker">
+                                <div class="pomodoro-circle filled" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle filled" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                            </div>
+                            <div class="feasibility">✓</div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item" style="align-items: center;">
+                        <div class="task-number">3.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Slack with Kevin">
+                        <div class="task-controls">
+                            <input type="checkbox" class="checkbox-input" onchange="toggleTask(this)">
+                            <div class="pomodoro-tracker">
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                            </div>
+                            <div class="feasibility">⚠</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Tasks -->
+                <div class="section">
+                    <div class="section-title">Additional Tasks</div>
+                    <div class="section-subtitle">"Do these only after you have completed the tasks above"</div>
+                    
+                    <div class="task-item" style="align-items: center;">
+                        <div class="task-number">4.</div>
+                        <input type="text" class="task-input" placeholder="Task" value="Clean temp files">
+                        <div class="task-controls">
+                            <input type="checkbox" class="checkbox-input" onchange="toggleTask(this)">
+                            <div class="pomodoro-tracker">
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item" style="align-items: center;">
+                        <div class="task-number">5.</div>
+                        <input type="text" class="task-input" placeholder="Task">
+                        <div class="task-controls">
+                            <input type="checkbox" class="checkbox-input" onchange="toggleTask(this)">
+                            <div class="pomodoro-tracker">
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                                <div class="pomodoro-circle" onclick="togglePomodoro(this)"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="notes-section">
+                    <div class="notes-title">Notes</div>
+                    <div class="section-subtitle">"Extra space for ideas, future tasks, inspiration, etc."</div>
+                    <textarea class="notes-textarea" placeholder="Notes..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Review View -->
+        <div id="weeklyView" class="weekly-review">
+            <div style="background: white; padding: 40px;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 30px; font-weight: 300; letter-spacing: 1px;">WEEKLY REVIEW</h2>
+                <div class="review-grid">
+                    <!-- Monday Review -->
+                    <div class="review-day">
+                        <div class="review-day-header">
+                            <span>Monday, Dec 16</span>
+                            <span style="color: var(--sage); font-weight: 600;">✓ 85%</span>
+                        </div>
+                        <div class="review-stats">
+                            13 of 15 tasks completed | Rating: 8/10
+                        </div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">What Got Done</div>
+                            <div class="review-completed-tasks">
+                                <div class="completed-item">✓ Fix ABC database migration</div>
+                                <div class="completed-item">✓ Review CPC codes</div>
+                                <div class="completed-item">✓ Slack with Kevin</div>
+                                <div class="completed-item">✓ Clean temp files</div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">What Didn't Get Done</div>
+                            <div class="review-incomplete-tasks">
+                                <div class="incomplete-item">✗ Team documentation update</div>
+                                <div class="incomplete-item">✗ Code refactoring</div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">Highlights</div>
+                            <div style="font-size: 0.9rem; line-height: 1.6; color: var(--dark); font-style: italic;">
+                                "Great focus session in the morning. Successfully pushed database migration to staging. Good energy throughout the shift."
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">Rating</div>
+                            <div class="rating-display">★★★★★★★★☆☆ 8/10</div>
+                        </div>
+                    </div>
+
+                    <!-- Tuesday Review -->
+                    <div class="review-day">
+                        <div class="review-day-header">
+                            <span>Tuesday, Dec 17</span>
+                            <span style="color: var(--warm); font-weight: 600;">~ 62%</span>
+                        </div>
+                        <div class="review-stats">
+                            10 of 16 tasks completed | Rating: 6/10
+                        </div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">What Got Done</div>
+                            <div class="review-completed-tasks">
+                                <div class="completed-item">✓ Fix ABC database migration</div>
+                                <div class="completed-item">✓ Review CPC codes</div>
+                                <div class="completed-item">✓ Team sync</div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">What Didn't Get Done</div>
+                            <div class="review-incomplete-tasks">
+                                <div class="incomplete-item">✗ Slack with Kevin (forgot)</div>
+                                <div class="incomplete-item">✗ Clean temp files</div>
+                                <div class="incomplete-item">✗ Documentation</div>
+                                <div class="incomplete-item">✗ Code refactoring</div>
+                                <div class="incomplete-item">✗ Check emails</div>
+                                <div class="incomplete-item">✗ Routing updates</div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">Highlights</div>
+                            <div style="font-size: 0.9rem; line-height: 1.6; color: var(--dark); font-style: italic;">
+                                "Good code review completed. Interrupted by unexpected production issue, but handled it well."
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <div class="review-section-title">Rating</div>
+                            <div class="rating-display">★★★★★★☆☆☆☆ 6/10</div>
+                        </div>
+                    </div>
+
+                    <!-- Wednesday Review -->
+                    <div class="review-day">
+                        <div class="review-day-header">
+                            <span>Wednesday, Dec 18</span>
+                            <span style="color: #999; font-weight: 600;">—</span>
+                        </div>
+                        <div class="review-stats">
+                            No data yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const quotes = [
+            { text: "Do the hard jobs first. The easy jobs will take care of themselves.", author: "Dale Carnegie" },
+            { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+            { text: "You don't have to see the whole staircase, just take the first step.", author: "Martin Luther King Jr." },
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+            { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+            { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+            { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+        ];
+
+        function getRandomQuote() {
+            return quotes[Math.floor(Math.random() * quotes.length)];
+        }
+
+        function showMode(mode) {
+            document.getElementById('dailyView').style.display = mode === 'daily' ? 'grid' : 'none';
+            document.getElementById('weeklyView').style.display = mode === 'weekly' ? 'block' : 'none';
+            document.getElementById('daySelector').style.display = mode === 'daily' ? 'flex' : 'none';
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function selectDay(btn, day) {
+            document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            
+            document.getElementById('dayName').textContent = day;
+            document.getElementById('dayPageTitle').textContent = 'Daily';
+            
+            const dateMap = { Monday: 16, Tuesday: 17, Wednesday: 18, Thursday: 19, Friday: 20, Saturday: 21, Sunday: 22 };
+            document.getElementById('dateSpan').textContent = dateMap[day] || 16;
+            
+            // Change quote for each day
+            const quote = getRandomQuote();
+            document.getElementById('quoteContainer').innerHTML = `
+                <div>"${quote.text}"</div>
+                <div class="quote-author">— ${quote.author}</div>
+            `;
+        }
+
+        function toggleTask(checkbox) {
+            const input = checkbox.closest('.task-item').querySelector('.task-input');
+            input.disabled = checkbox.checked;
+        }
+
+        function togglePomodoro(circle) {
+            circle.classList.toggle('filled');
+        }
+
+        // Initialize with random quote
+        window.addEventListener('load', () => {
+            const quote = getRandomQuote();
+            document.getElementById('quoteContainer').innerHTML = `
+                <div>"${quote.text}"</div>
+                <div class="quote-author">— ${quote.author}</div>
+            `;
+        });
+    </script>
+</body>
+</html>

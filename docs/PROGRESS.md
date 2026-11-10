@@ -1,5 +1,7 @@
 # Progress
 
+Each phase appends a section below: what was done, how it was verified, and what was skipped.
+
 ## Step 0 — Development environment & keys
 
 What was done:
@@ -19,3 +21,14 @@ Open points (see OPEN_QUESTIONS.md):
 - Keys use the new format (`sb_publishable_…` / `sb_secret_…`). Use a current `@supabase/supabase-js`.
 - The redirect URL `http://localhost:3000/**` must be allowed in Supabase Auth settings. The user needs to confirm this.
 - Phases 1–2 need to change: `supabase start` / `db reset` / Inbucket → `db push --db-url`, admin `generateLink` for test logins.
+
+## Step 0b — Bootstrap: brief, prototype, docs
+
+What was done:
+- Added `CLAUDE.md` (the build brief) to the repo root, unchanged.
+- Added `docs/prototype.html`, an unchanged copy of `ADHD_PLANNER_NEW.html` (the approved static mockup).
+- Added the prototype-vs-brief gaps to `docs/OPEN_QUESTIONS.md`, each with the resolution the brief dictates.
+
+How it was verified: files committed; `git show --stat` lists them.
+
+Skipped: nothing. No app code yet (phase 1 is next).
