@@ -4,7 +4,10 @@ import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveDayTask, saveNotes, saveWeekTask } from "@/app/actions";
 import { format, parseISO } from "date-fns";
+import { fetchEstimate } from "@/lib/ai/fetch-estimate";
 import { clickBubble } from "@/lib/domain/bubbles";
+import { dayCategory } from "@/lib/domain/category";
+import { overload, totalTarget } from "@/lib/domain/overload";
 import { weekDates } from "@/lib/domain/rollover";
 import type { DayTaskView, DayView, WeekTaskView } from "@/lib/domain/views";
 import { Notes } from "./Notes";
@@ -88,12 +91,51 @@ export function Planner({
     savedWeekTitles.current.set(slot, trimmed);
     save(() => saveWeekTask({ weekId, slot, title }));
   };
+  // Per-slot counter: a newer title or a manual target makes a pending AI answer stale.
+  const estimateSeq = useRef(new Map<number, number>());
+  const bumpEstimate = (slot: number) => {
+    const seq = (estimateSeq.current.get(slot) ?? 0) + 1;
+    estimateSeq.current.set(slot, seq);
+    return seq;
+  };
+
+  /** Ask the AI for a target after the title is saved. Never blocks, never shows errors. */
+  const requestEstimate = async (slot: number, title: string) => {
+    const seq = bumpEstimate(slot);
+    const otherTasks = dayTasks
+      .filter((t) => t.slot !== slot && t.title.trim())
+      .map((t) => `${t.title.trim()}${t.targetPomodoros ? ` (${t.targetPomodoros} pomodoros)` : ""}`);
+    const r = await fetchEstimate({ title, category: dayCategory(slot), otherTasks });
+    if (!r || estimateSeq.current.get(slot) !== seq) return;
+    const patch = { targetPomodoros: r.targetPomodoros, feasibility: r.feasibility, feasibilityNote: r.note || null };
+    updateDay(slot, patch);
+    save(() => saveDayTask({ dayId, slot, ...patch }));
+  };
+
   const commitDayTitle = (slot: number, title: string) => {
     const trimmed = title.trim();
     if (savedDayTitles.current.get(slot) === trimmed) return;
     savedDayTitles.current.set(slot, trimmed);
+    if (!trimmed) {
+      // Slot emptied: the old estimate no longer belongs to anything.
+      bumpEstimate(slot);
+      const cleared = { targetPomodoros: null, feasibility: null, feasibilityNote: null };
+      updateDay(slot, cleared);
+      save(() => saveDayTask({ dayId, slot, title, ...cleared }));
+      return;
+    }
     save(() => saveDayTask({ dayId, slot, title }));
+    void requestEstimate(slot, trimmed);
   };
+
+  const commitTarget = (slot: number, targetPomodoros: number | null) => {
+    bumpEstimate(slot);
+    updateDay(slot, { targetPomodoros });
+    save(() => saveDayTask({ dayId, slot, targetPomodoros }));
+  };
+
+  const plannedPomodoros = totalTarget(dayTasks.map((t) => t.targetPomodoros));
+  const load = overload(dayTasks.map((t) => t.targetPomodoros));
 
   // Notes: debounce 800ms; flush on blur and when leaving the day.
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,6 +244,7 @@ export function Planner({
                     nextInputId={slot < 5 ? `day-task-${slot + 1}` : undefined}
                     onTitleChange={(title) => updateDay(slot, { title })}
                     onTitleCommit={() => commitDayTitle(slot, t.title)}
+                    onTargetCommit={(n) => commitTarget(slot, n)}
                     onBubbleClick={(n) => {
                       const completedPomodoros = clickBubble(t.completedPomodoros, n);
                       updateDay(slot, { completedPomodoros });
@@ -217,6 +260,11 @@ export function Planner({
               })}
             </Section>
           ))}
+
+          <p aria-live="polite" className={clsx("text-xs italic text-warm", load !== "yes" && "-mt-6 mb-8")}>
+            {load === "warning" && `${plannedPomodoros} pomodoros planned — the shift is getting tight.`}
+            {load === "no" && `${plannedPomodoros} pomodoros planned — more than one shift holds (15).`}
+          </p>
 
           <Notes value={notes} onChange={changeNotes} onBlur={flushNotes} />
         </Page>

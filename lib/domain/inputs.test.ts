@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayNotes, dayTaskPatch, dayTaskRow, weekTaskPatch, weekTaskRow } from "./inputs";
+import { dayNotes, dayTaskPatch, dayTaskRow, estimateRequest, weekTaskPatch, weekTaskRow } from "./inputs";
 
 const id = "7f1c7a52-6a2b-4d8e-9c1a-2b3c4d5e6f70";
 
@@ -53,5 +53,44 @@ describe("dayNotes", () => {
   it("keeps notes as typed", () => {
     expect(dayNotes.parse({ dayId: id, notes: " a\n" }).notes).toBe(" a\n");
     expect(dayNotes.safeParse({ dayId: id, notes: "x".repeat(20001) }).success).toBe(false);
+  });
+});
+
+describe("dayTaskPatch feasibility", () => {
+  it("maps the AI estimate fields and clears with null", () => {
+    const p = dayTaskPatch.parse({ dayId: id, slot: 1, targetPomodoros: 3, feasibility: "warning", feasibilityNote: " Tight. " });
+    expect(dayTaskRow(p)).toEqual({
+      day_id: id,
+      slot: 1,
+      target_pomodoros: 3,
+      feasibility: "warning",
+      feasibility_note: "Tight.",
+    });
+    expect(dayTaskRow(dayTaskPatch.parse({ dayId: id, slot: 1, feasibility: null, feasibilityNote: null }))).toEqual({
+      day_id: id,
+      slot: 1,
+      feasibility: null,
+      feasibility_note: null,
+    });
+  });
+
+  it("rejects unknown feasibility values", () => {
+    expect(dayTaskPatch.safeParse({ dayId: id, slot: 1, feasibility: "maybe" }).success).toBe(false);
+  });
+});
+
+describe("estimateRequest", () => {
+  it("accepts a valid body and defaults otherTasks", () => {
+    expect(estimateRequest.parse({ title: " Fix DB ", category: "important" })).toEqual({
+      title: "Fix DB",
+      category: "important",
+      otherTasks: [],
+    });
+  });
+
+  it("rejects empty titles, unknown categories and too many tasks", () => {
+    expect(estimateRequest.safeParse({ title: "  ", category: "important" }).success).toBe(false);
+    expect(estimateRequest.safeParse({ title: "a", category: "urgent" }).success).toBe(false);
+    expect(estimateRequest.safeParse({ title: "a", category: "secondary", otherTasks: Array(11).fill("x") }).success).toBe(false);
   });
 });

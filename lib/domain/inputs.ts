@@ -25,13 +25,22 @@ export const dayTaskPatch = z
     targetPomodoros: z.number().int().min(1).max(99).nullable().optional(),
     completedPomodoros: z.number().int().min(0).max(99).optional(),
     isDone: z.boolean().optional(),
+    feasibility: z.enum(["yes", "warning", "no"]).nullable().optional(),
+    feasibilityNote: z
+      .string()
+      .max(500)
+      .transform((s) => s.trim() || null)
+      .nullable()
+      .optional(),
   })
   .refine(
     (p) =>
       p.title !== undefined ||
       p.targetPomodoros !== undefined ||
       p.completedPomodoros !== undefined ||
-      p.isDone !== undefined,
+      p.isDone !== undefined ||
+      p.feasibility !== undefined ||
+      p.feasibilityNote !== undefined,
     "empty patch",
   );
 
@@ -62,5 +71,16 @@ export function dayTaskRow(p: z.output<typeof dayTaskPatch>) {
     ...(p.targetPomodoros !== undefined && { target_pomodoros: p.targetPomodoros }),
     ...(p.completedPomodoros !== undefined && { completed_pomodoros: p.completedPomodoros }),
     ...(p.isDone !== undefined && { is_done: p.isDone }),
+    ...(p.feasibility !== undefined && { feasibility: p.feasibility }),
+    ...(p.feasibilityNote !== undefined && { feasibility_note: p.feasibilityNote }),
   };
 }
+
+/** Body of POST /api/estimate. */
+export const estimateRequest = z.object({
+  title: z.string().trim().min(1).max(500),
+  category: z.enum(["important", "secondary", "additional"]),
+  otherTasks: z.array(z.string().trim().min(1).max(500)).max(10).default([]),
+});
+
+export type EstimateRequest = z.input<typeof estimateRequest>;

@@ -24,3 +24,9 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 ## Phase 3c
 
 - **Failed save feedback.** The brief allows only a small "saved" indicator. When a save fails (network/RLS), the indicator says "not saved" in warm instead of staying silent. There is no retry: the next edit saves the full field again. Is that OK?
+
+## Phase 4
+
+- **OpenAI key has no credits.** `OPENAI_API_KEY` currently gets 429 `insufficient_quota`, so the app runs as "AI disabled". The live success path is untested (only with a mocked route). Add credits, then type a day task once to confirm.
+- **Override vs. AI mark.** A manual target keeps the ✓/⚠/✕ mark and the note from the last AI estimate, even though the mark was judged against the AI's own number. Should a manual override clear the mark?
+- **Changed title vs. manual target.** Renaming a task triggers a new estimate that replaces a manual target. Should a manual target be "sticky" instead?

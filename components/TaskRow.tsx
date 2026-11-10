@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import type { KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { Feasibility } from "@/lib/domain/overload";
 import { Bubbles } from "./Bubbles";
 
@@ -86,6 +86,76 @@ function CountBox({ value, label }: { value: number | null; label: string }) {
   );
 }
 
+/** Parse a typed target: empty → null (cleared), 1–99 → number, else undefined (invalid). */
+function parseTarget(raw: string): number | null | undefined {
+  const s = raw.trim();
+  if (!s) return null;
+  if (!/^\d{1,2}$/.test(s)) return undefined;
+  const n = Number(s);
+  return n >= 1 ? n : undefined;
+}
+
+/**
+ * Target box. Click (or Enter/Space on focus) to type your own number; Enter or
+ * blur saves, Escape cancels, an empty box clears the target.
+ */
+function TargetBox({
+  slot,
+  value,
+  onCommit,
+}: {
+  slot: number;
+  value: number | null;
+  onCommit?: (n: number | null) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const box = "flex size-7 shrink-0 items-center justify-center border border-line text-[0.8rem] tabular-nums";
+  const label = `Day task ${slot} target pomodoros`;
+
+  if (draft === null) {
+    return (
+      <button
+        type="button"
+        aria-label={value ? `${label}: ${value}, click to change` : `${label}, click to set`}
+        title="Target pomodoros"
+        onClick={() => setDraft(value?.toString() ?? "")}
+        className={clsx(box, "cursor-text hover:border-sage")}
+      >
+        {value ?? ""}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    const n = parseTarget(draft);
+    setDraft(null);
+    if (n !== undefined && n !== value) onCommit?.(n);
+  };
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoFocus
+      onFocus={(e) => e.currentTarget.select()}
+      aria-label={label}
+      value={draft}
+      maxLength={2}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          setDraft(null);
+        }
+      }}
+      onBlur={commit}
+      className={clsx(box, "bg-transparent text-center outline-none focus:border-sage")}
+    />
+  );
+}
+
 /**
  * Day page row: number · underline input · target box · 5 bubbles · actual box ·
  * checkbox · feasibility mark. On narrow pages the controls wrap below the title.
@@ -102,6 +172,7 @@ export function DayTaskRow({
   nextInputId,
   onTitleChange,
   onTitleCommit,
+  onTargetCommit,
   onBubbleClick,
   onToggleDone,
 }: {
@@ -116,6 +187,7 @@ export function DayTaskRow({
   nextInputId?: string;
   onTitleChange?: (title: string) => void;
   onTitleCommit?: () => void;
+  onTargetCommit?: (n: number | null) => void;
   onBubbleClick?: (n: number) => void;
   onToggleDone?: () => void;
 }) {
@@ -137,7 +209,7 @@ export function DayTaskRow({
         />
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <CountBox value={targetPomodoros} label="Target pomodoros" />
+        <TargetBox slot={slot} value={targetPomodoros} onCommit={onTargetCommit} />
         <Bubbles completed={completedPomodoros} onClick={onBubbleClick} />
         <CountBox value={completedPomodoros} label="Actual pomodoros" />
         <input
@@ -155,6 +227,9 @@ export function DayTaskRow({
           {mark?.mark}
         </span>
       </div>
+      {feasibilityNote && title.trim() && (
+        <p className="w-full pl-9 text-xs italic leading-snug text-muted">{feasibilityNote}</p>
+      )}
     </div>
   );
 }

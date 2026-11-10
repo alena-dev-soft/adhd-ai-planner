@@ -33,7 +33,9 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (!user && !isPublic(request.nextUrl.pathname)) {
+  // API routes check auth themselves and answer 401 instead of a redirect.
+  const isApi = request.nextUrl.pathname.startsWith("/api/");
+  if (!user && !isApi && !isPublic(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

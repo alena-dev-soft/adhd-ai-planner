@@ -288,3 +288,48 @@ Deliberate differences from the prototype (required by the brief):
 7. **Weekly Review** will be its own route `/review` (phase 5), not a toggle on the same page. **Close the day** (rating circles etc.) also comes in phase 5, so it isn't on the screenshots yet.
 
 Result: **the human approved the layout with no changes.** Next: phase 4 (AI).
+
+## Phase 4 — AI estimate, inline feasibility, target override, overload
+
+What was done:
+- **`lib/ai/estimator.ts`** is the one swappable function, `estimate({ title, category, otherTasks })`:
+  - It calls OpenAI `gpt-4o-mini` with plain `fetch` (no SDK), using `response_format: json_object` and temperature 0.2. It reads `OPENAI_API_KEY` server-side only. With no key it returns `{ targetPomodoros: null }` without making a call.
+  - The system prompt (`SYSTEM_PROMPT`) is ADHD-aware and conservative ("round up"). It counts task-switching cost, assumes a shift holds 15 pomodoros, asks for JSON only and keeps the note to one short neutral sentence.
+  - `parseEstimate` is pure: strip ``` fences → `JSON.parse` → zod. `targetPomodoros` is coerced, rounded and clamped to 1–8. `feasibility` is trimmed and lowercased, and must be yes|warning|no (anything else counts as a failure). The note is whitespace-collapsed and capped at 200 chars.
+  - A 5s `AbortController` timeout races the call, so a fetch that ignores the signal still times out. Non-OK status, network error, bad body or timeout all return `{ targetPomodoros: null }`. It never throws.
+- **`app/api/estimate/route.ts`** takes `POST { title, category, otherTasks[] }`. The body is validated by `estimateRequest` in `lib/domain/inputs.ts` (title 1–500 chars, category enum, ≤10 other tasks). A signed-in user is required (`getClaims`), otherwise it returns 401. AI failures are answered with 200 `{ targetPomodoros: null }`.
+  - `lib/supabase/middleware.ts` no longer redirects `/api/*` to /login, so the route can answer 401 itself.
+- **`dayTaskPatch`** also accepts `feasibility` (yes|warning|no|null) and `feasibilityNote` (trimmed, empty → null).
+- **UI** (`components/Planner.tsx`, `components/TaskRow.tsx`, `lib/ai/fetch-estimate.ts`):
+  - The estimate is requested only when a day task title is created or changed (the commit on blur/Enter). The title save is queued first, and the AI request runs alongside it without blocking anything.
+  - `otherTasks` holds the other non-empty day titles, with " (N pomodoros)" added when they have a target.
+  - On success, target, feasibility and note are saved through `saveDayTask`. The mark shows inline (✓ sage, ⚠ warm, ✕ warm for "no"), and the note appears as small muted italic text under the row.
+  - On failure (null, 401, timeout after 8s client-side, garbage) nothing changes and nothing is shown.
+  - A per-slot sequence counter drops stale answers: a newer title edit or a manual target override during a pending request wins.
+  - Clearing a title also clears that slot's target, feasibility and note, so an empty slot doesn't count towards overload.
+  - Week tasks get no estimate. The brief only describes targets for day tasks.
+- **Target override:** clicking the target box turns it into a small numeric input. Enter or blur saves, Escape cancels, an empty value clears the target (null), and invalid input (0, letters) is ignored. Allowed values are 1–99, the same as the action schema.
+- **Overload:** a line under the day tasks, in warm italic, uses `overload()` / `totalTarget()` from `lib/domain/overload.ts`.
+  - It shows "N pomodoros planned — the shift is getting tight." when the total is above 12, and "… more than one shift holds (15)." above 15.
+  - Nothing renders when the total is ≤ 12. It works without AI, from manual targets.
+
+How it was verified:
+- `npm run lint` is clean and `npm test` is green (80).
+  - New tests in `lib/ai/estimator.test.ts` (mocked fetch) cover: valid JSON, fenced JSON, garbage, non-OK status, malformed body, a fetch that throws, the 5s timeout with fake timers (aborted exactly at 5000ms, even when the fetch ignores the signal), out-of-range clamping (40→8, 0/-4→1, 2.6→3, "4"→4), feasibility normalisation, and the case where no key means no fetch.
+  - Further tests for the new `inputs` schemas.
+  - `tsc` shows only the known `LayoutProps` error.
+- Against `npm run dev` + the hosted Supabase project, with a throwaway user (deleted afterwards) and headless Playwright from /tmp:
+  - Unauthenticated `POST /api/estimate` → 401.
+  - **Real OpenAI:** the project's key currently answers **429 "no credits remaining"**, so the route returned `{targetPomodoros:null}`. The task saved, the target stayed empty, there was no mark, and the status said "saved". This is the live failure path. The live success path could **not** be verified.
+  - **Success path with `/api/estimate` mocked in the browser:** the target (4), ⚠ and the note appeared. The request body had the right category and otherTasks (including the "(7 pomodoros)" suffix).
+  - Override 7 → overload (with 7+4+5=16) showed the "no" text, and overriding to 2 (13) showed the warning text. Escape and the invalid value "0" were ignored.
+  - Blurring an unchanged title sent no request. A slow (1.5s) AI answer arriving after a manual override did not overwrite it.
+  - After a reload, targets, marks, notes and the overload line persisted. Clearing a title cleared its estimate after the reload too.
+  - At 390px, `scrollWidth` is 390. There were no console errors.
+- **With `OPENAI_API_KEY` unset** (`env -u OPENAI_API_KEY npm run dev`): the route returned `{targetPomodoros:null}` in about 270ms. Tasks saved, manual targets 9+7 showed the "no" overload line, and everything persisted after the reload.
+
+Decisions / open points (also in OPEN_QUESTIONS):
+- A new AI estimate on a changed title overwrites an earlier manual target. A manual override keeps the AI mark and note from the last estimate.
+- An unknown `feasibility` value from the model counts as a failure. It is not guessed.
+
+Next: phase 5 (Close the day + Review).
