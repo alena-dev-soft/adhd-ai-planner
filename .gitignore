@@ -427,3 +427,19 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# --- Node / Next.js / Supabase (ADH Planner) ---
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel/
+# Secrets: never commit local env files (OPENAI_API_KEY, Supabase keys)
+.env
+.env*.local
+!.env.example
+supabase/.temp/
+supabase/.branches/
+playwright-report/
+test-results/
