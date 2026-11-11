@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Design tokens (CLAUDE.md section 4). Use as bg-cream, text-ink, border-sage, ... */
+@theme {
+  --color-cream: #f5f3ef;
+  --color-paper: #fbfaf7;
+  --color-ink: #2c2c2c;
+  --color-sage: #a8c48f;
+  --color-skyblue: #b8c5d6;
+  --color-warm: #d4a574;
+  --color-muted: #9a9a9a;
+  /* Text-only shades of muted/sage/warm that pass WCAG AA (≥4.5:1) on cream and
+     paper. Fills, bubbles and borders keep the tokens above (user decision, phase 6). */
+  --color-muted-text: #6b6b6b;
+  --color-sage-text: #567540;
+  --color-warm-text: #8a6030;
+  /* Hairlines from the prototype */
+  --color-line: #e8e3dd;
+
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  line-height: 1.8;
+}
+
+::placeholder {
+  color: var(--color-muted-text);
+  opacity: 1;
+}
+
+/* Visible keyboard focus. Text fields keep their underline/border (darker sage on focus). */
+:where(a, button, [type="checkbox"], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-sage-text);
+  outline-offset: 2px;
+}
