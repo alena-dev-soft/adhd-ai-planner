@@ -667,4 +667,4 @@ Run the app (Preview, or `npm install && npm run dev`) and sign in.
 4. **Widths:** at 1440px the pages should sit side by side. At 390px they should stack (week first), the day bubbles should wrap under the title, and there should be no horizontal scroll.
 5. **Reduce motion:** turn on the OS "Reduce motion" setting (macOS: Accessibility → Display; Windows: Settings → Accessibility → Visual effects → Animation effects off). Repeat steps 1–3. Nothing should animate or cross-fade, but everything should still work.
 
-Open: waiting for the human to confirm the checklist above.
+Human check: the user confirmed all 5 checklist items with no issues.
