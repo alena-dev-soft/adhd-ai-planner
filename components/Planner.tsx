@@ -15,8 +15,11 @@ import { CloseDay } from "./CloseDay";
 import { Notes } from "./Notes";
 import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
+import type { BubblePop } from "./Bubbles";
 import { DayTaskRow, WeekTaskRow } from "./TaskRow";
-import { TopBar } from "./TopBar";
+import { Header, WeekNav } from "./TopBar";
+import { useTheme } from "./ThemeProvider";
+import { slotGroups } from "@/lib/theme";
 import { useSaver, type SaveStatus } from "@/lib/use-saver";
 
 const NOTES_DEBOUNCE_MS = 800;
@@ -27,18 +30,6 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
   saved: "saved",
   error: "not saved",
 };
-
-const WEEK_SECTIONS = [
-  { title: "Five Most Important Tasks of the Week", subtitle: "If these are the only tasks you completed during the week, you'd be satisfied", slots: [1, 2, 3, 4, 5] },
-  { title: "Tasks of Secondary Importance", subtitle: "Do these only after you have completed the above tasks", slots: [6, 7, 8, 9, 10] },
-  { title: "Additional Tasks", subtitle: "Do these only after you have completed the above tasks", slots: [11, 12] },
-];
-
-const DAY_SECTIONS = [
-  { title: "Most Important Task of the Day", subtitle: "If this was the only thing you did today you'd be satisfied", slots: [1] },
-  { title: "Secondary Tasks of Importance", subtitle: "Completion of these tasks will make the day even better", slots: [2, 3] },
-  { title: "Additional Tasks", subtitle: "Do these only after you have completed the tasks above", slots: [4, 5] },
-];
 
 /**
  * Two facing pages. Week and day come from the URL (server-loaded). Every edit
@@ -72,6 +63,15 @@ export function Planner({
   const [dayTasks, setDayTasks] = useState(initialDayTasks);
   const [notes, setNotes] = useState(dayData.notes);
   const [weekOpen, setWeekOpen] = useState(false);
+  const { theme } = useTheme();
+
+  // Animation triggers: UI-only, never saved, never set on load.
+  // lastPop = the bubble a click just filled (taskId `d{slot}`); n bumps on every pop so the key replays it.
+  const [lastPop, setLastPop] = useState<(BubblePop & { taskId: string }) | null>(null);
+  // lastSpark = the row (`d{slot}` / `w{slot}`) the user just ticked to done.
+  const [lastSpark, setLastSpark] = useState<string | null>(null);
+  const markSpark = (rowId: string, isDone: boolean) =>
+    setLastSpark((cur) => (isDone ? rowId : cur === rowId ? null : cur));
 
   const dates = weekDates(weekStart);
   const day = parseISO(selectedDate);
@@ -160,46 +160,53 @@ export function Planner({
   };
   useEffect(() => flushNotes, [flushNotes]);
 
+  const donePomodoros = dayTasks.reduce((sum, t) => sum + t.completedPomodoros, 0);
+
   return (
-    <main className="mx-auto max-w-[1400px] p-3 min-[900px]:p-5">
-      <TopBar
+    <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8">
+      <Header
+        weekStart={weekStart}
+        selectedDate={selectedDate}
+        today={today}
+        done={donePomodoros}
+        target={plannedPomodoros}
+        status={
+          <span role="status" className={clsx("text-sm", status === "error" ? "text-ink" : "text-muted")}>
+            {STATUS_TEXT[status]}
+          </span>
+        }
+      />
+      <WeekNav
         weekStart={weekStart}
         dates={dates}
         selectedDate={selectedDate}
         today={today}
         prevWeekHref={prevWeekHref}
         nextWeekHref={nextWeekHref}
-        status={
-          <span
-            role="status"
-            className={clsx("min-w-16 text-right text-xs", status === "error" ? "text-warm-text" : "text-muted-text")}
-          >
-            {STATUS_TEXT[status]}
-          </span>
-        }
       />
 
-      <div className="grid grid-cols-1 overflow-hidden bg-paper shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
-        <Page className="border-b-2 border-line min-[900px]:border-r-2 min-[900px]:border-b-0">
-          <div className="flex items-center justify-between">
-            <PageTitle>Weekly Planning</PageTitle>
+      {/* 460 + 560 + 24 gap: side by side from ~1092px viewport, stacked (week first) below. */}
+      <div className="flex flex-wrap items-start gap-6">
+        <Page label="Week" className="flex-[1_1_460px]">
+          <div className="flex items-center justify-between gap-4">
+            <PageTitle>{theme.weekPageTitle}</PageTitle>
             <button
               type="button"
               aria-expanded={weekOpen}
               aria-controls="week-tasks"
               onClick={() => setWeekOpen((o) => !o)}
-              className="text-xs uppercase tracking-[1px] text-muted-text hover:text-ink min-[900px]:hidden"
+              className="btn ghost shrink-0 whitespace-nowrap px-3! min-[1092px]:hidden"
             >
               {weekOpen ? "Hide ▴" : "Show ▾"}
             </button>
           </div>
-          <p className="mb-8 text-[0.85rem] text-muted-text">
-            Week of {format(parseISO(weekStart), "dd / MM / yyyy")}
-          </p>
 
-          <div id="week-tasks" className={clsx(!weekOpen && "hidden", "min-[900px]:block")}>
-            {WEEK_SECTIONS.map((s) => (
-              <Section key={s.title} title={s.title} subtitle={s.subtitle}>
+          <div
+            id="week-tasks"
+            className={clsx(!weekOpen && "hidden", "flex-col gap-[22px] min-[1092px]:flex", weekOpen && "flex")}
+          >
+            {slotGroups(theme, "week").map((s) => (
+              <Section key={s.slots[0]} title={s.label} subtitle={s.subtitle}>
                 {s.slots.map((slot) => {
                   const t = weekTasks.find((w) => w.slot === slot)!;
                   return (
@@ -212,8 +219,10 @@ export function Planner({
                       nextInputId={slot < 12 ? `week-task-${slot + 1}` : undefined}
                       onTitleChange={(title) => updateWeek(slot, { title })}
                       onTitleCommit={() => commitWeekTitle(slot, t.title)}
+                      spark={lastSpark === `w${slot}`}
                       onToggleDone={() => {
                         const isDone = !t.isDone;
+                        markSpark(`w${slot}`, isDone);
                         updateWeek(slot, { isDone });
                         save(() => saveWeekTask({ weekId, slot, isDone }));
                       }}
@@ -225,19 +234,16 @@ export function Planner({
           </div>
         </Page>
 
-        <Page>
-          <div className="flex items-start justify-between">
-            <PageTitle>Daily</PageTitle>
-            <div className="text-right text-[0.85rem] text-muted-text">
-              <p>Date {format(day, "dd / MM / yyyy")}</p>
-              <p className="text-xs uppercase tracking-[1px]">{format(day, "EEEE")}</p>
-            </div>
+        <Page label="Day" className="flex-[1_1_560px]">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="head text-xl leading-snug">{format(day, "d MMMM yyyy")}</h2>
+            <p className="head text-sm text-muted">{format(day, "EEEE")}</p>
           </div>
 
           {dayData.quote && <Quote text={dayData.quote.text} author={dayData.quote.author} />}
 
-          {DAY_SECTIONS.map((s) => (
-            <Section key={s.title} title={s.title} subtitle={s.subtitle}>
+          {slotGroups(theme, "day").map((s) => (
+            <Section key={s.slots[0]} title={s.label} subtitle={s.subtitle}>
               {s.slots.map((slot) => {
                 const t = dayTasks.find((d) => d.slot === slot)!;
                 return (
@@ -249,13 +255,24 @@ export function Planner({
                     onTitleChange={(title) => updateDay(slot, { title })}
                     onTitleCommit={() => commitDayTitle(slot, t.title)}
                     onTargetCommit={(n) => commitTarget(slot, n)}
+                    pop={lastPop?.taskId === `d${slot}` ? lastPop : null}
+                    spark={lastSpark === `d${slot}`}
                     onBubbleClick={(n) => {
                       const completedPomodoros = clickBubble(t.completedPomodoros, n);
+                      const taskId = `d${slot}`;
+                      setLastPop((cur) =>
+                        completedPomodoros > t.completedPomodoros
+                          ? { taskId, index: n, n: (cur?.n ?? 0) + 1, shape: theme.bubbleShape }
+                          : cur?.taskId === taskId
+                            ? null
+                            : cur,
+                      );
                       updateDay(slot, { completedPomodoros });
                       save(() => saveDayTask({ dayId, slot, completedPomodoros }));
                     }}
                     onToggleDone={() => {
                       const isDone = !t.isDone;
+                      markSpark(`d${slot}`, isDone);
                       updateDay(slot, { isDone });
                       save(() => saveDayTask({ dayId, slot, isDone }));
                     }}
@@ -265,7 +282,7 @@ export function Planner({
             </Section>
           ))}
 
-          <p aria-live="polite" className={clsx("text-xs italic text-warm-text", load !== "yes" && "-mt-6 mb-8")}>
+          <p aria-live="polite" className="-mt-2 text-sm italic text-ink empty:-mt-[22px]">
             {load === "warning" && `${plannedPomodoros} pomodoros planned — the shift is getting tight.`}
             {load === "no" && `${plannedPomodoros} pomodoros planned — more than one shift holds (15).`}
           </p>

@@ -1,19 +1,18 @@
 import clsx from "clsx";
 import { useState, type KeyboardEvent } from "react";
 import type { Feasibility } from "@/lib/domain/overload";
-import { Bubbles } from "./Bubbles";
+import { Bubbles, type BubblePop } from "./Bubbles";
 
 export type { Feasibility };
 
 const FEASIBILITY_MARK: Record<Feasibility, { mark: string; className: string; label: string }> = {
-  yes: { mark: "✓", className: "text-sage-text", label: "Feasible" },
-  warning: { mark: "⚠", className: "text-warm-text", label: "Tight" },
-  no: { mark: "✕", className: "text-warm-text", label: "Too much" },
+  yes: { mark: "✓", className: "text-accent", label: "Feasible" },
+  warning: { mark: "⚠", className: "text-ink", label: "Tight" },
+  no: { mark: "✕", className: "text-ink", label: "Too much" },
 };
 
-const titleInput =
-  "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-sage-text";
-const checkbox = "size-[18px] shrink-0 cursor-pointer accent-sage";
+/** Borderless input inside `.title` (the strike-through ::after lives on the wrapper span). */
+const titleInput = "w-full min-w-0 border-0 bg-transparent py-1 placeholder:italic";
 
 /**
  * Title input keys: Enter moves focus to the next slot (or leaves the last one),
@@ -57,13 +56,50 @@ function rowKeys(
   }
 }
 
-const rowFocus = "rounded-sm outline-offset-4 focus:outline-2 focus:outline-sage-text";
+const rowFocus = "outline-offset-4 focus:outline-2 focus:outline-glow";
 
 function SlotNumber({ slot }: { slot: number }) {
-  return <span className="min-w-6 text-[0.9rem] tabular-nums text-muted-text">{slot}.</span>;
+  return <span className="num shrink-0 tabular-nums">{slot}</span>;
 }
 
-/** Week page row: number · underline input · checkbox. */
+/**
+ * `.chk` done button: circle + checkmark (drawn in by `.row[data-done]`) and the
+ * 6-dot `.burst` (fired by `.row[data-spark]`, set only right after a click).
+ */
+function CheckButton({ label, isDone, onToggle }: { label: string; isDone: boolean; onToggle?: () => void }) {
+  return (
+    <button
+      type="button"
+      className="chk shrink-0"
+      aria-label={label}
+      aria-pressed={isDone}
+      data-native-keys
+      onClick={() => onToggle?.()}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle className="c" cx="12" cy="12" r="9" />
+        <path className="m" d="M7.5 12.5l3 3 6-6.5" />
+      </svg>
+      <span className="burst" aria-hidden="true">
+        <i></i>
+        <i></i>
+        <i></i>
+        <i></i>
+        <i></i>
+        <i></i>
+      </span>
+    </button>
+  );
+}
+
+function rowState(isDone: boolean, spark: boolean | undefined) {
+  return {
+    "data-done": isDone ? "true" : "false",
+    "data-spark": spark ? "true" : undefined,
+  } as const;
+}
+
+/** Week page row (`.row`): number · title · check. */
 export function WeekTaskRow({
   slot,
   title,
@@ -73,10 +109,13 @@ export function WeekTaskRow({
   onTitleChange,
   onTitleCommit,
   onToggleDone,
+  spark,
 }: {
   slot: number;
   title: string;
   isDone: boolean;
+  /** Fire the spark burst (only right after the user ticked this row). */
+  spark?: boolean;
   inputId?: string;
   nextInputId?: string;
   onTitleChange?: (title: string) => void;
@@ -91,10 +130,12 @@ export function WeekTaskRow({
       aria-label={`Week task ${slot}`}
       aria-keyshortcuts="Space Enter"
       onKeyDown={(e) => rowKeys(e, { onToggleDone })}
-      className={clsx("mb-3 flex items-center gap-3", rowFocus)}
+      {...rowState(isDone, spark)}
+      className={clsx("row flex-nowrap!", rowFocus)}
     >
       <SlotNumber slot={slot} />
-      <input
+      <span className="title">
+        <input
         type="text"
         id={inputId}
         aria-label={`Week task ${slot}`}
@@ -103,28 +144,18 @@ export function WeekTaskRow({
         onChange={(e) => onTitleChange?.(e.target.value)}
         onKeyDown={(e) => titleKeys(e, nextInputId)}
         onBlur={() => onTitleCommit?.()}
-        className={clsx(titleInput, isDone && "text-muted-text line-through")}
+        className={titleInput}
       />
-      <input
-        type="checkbox"
-        aria-label={`Week task ${slot} done`}
-        checked={isDone}
-        onChange={() => onToggleDone?.()}
-        data-native-keys
-        className={checkbox}
-      />
+      </span>
+      <CheckButton label={`Week task ${slot} done`} isDone={isDone} onToggle={onToggleDone} />
     </div>
   );
 }
 
-/** A small square box holding a pomodoro count (target or actual). */
+/** The `.box.actual` holding the completed pomodoro count. */
 function CountBox({ value, label }: { value: number | null; label: string }) {
   return (
-    <span
-      aria-label={label}
-      title={label}
-      className="flex size-7 shrink-0 items-center justify-center border border-line text-[0.8rem] tabular-nums"
-    >
+    <span aria-label={label} title={label} className="box actual shrink-0 tabular-nums">
       {value ?? ""}
     </span>
   );
@@ -153,7 +184,7 @@ function TargetBox({
   onCommit?: (n: number | null) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const box = "flex size-7 shrink-0 items-center justify-center border border-line text-[0.8rem] tabular-nums";
+  const box = "box shrink-0 tabular-nums";
   const label = `Day task ${slot} target pomodoros`;
 
   if (draft === null) {
@@ -164,7 +195,7 @@ function TargetBox({
         title="Target pomodoros"
         data-native-keys
         onClick={() => setDraft(value?.toString() ?? "")}
-        className={clsx(box, "cursor-text hover:border-sage")}
+        className={clsx(box, "box-hit cursor-text hover:border-accent")}
       >
         {value ?? ""}
       </button>
@@ -196,14 +227,14 @@ function TargetBox({
         }
       }}
       onBlur={commit}
-      className={clsx(box, "bg-transparent text-center outline-none focus:border-sage-text")}
+      className={clsx(box, "bg-transparent text-center text-ink outline-none focus:border-accent")}
     />
   );
 }
 
 /**
- * Day page row: number · underline input · target box · 5 bubbles · actual box ·
- * checkbox · feasibility mark. On narrow pages the controls wrap below the title.
+ * Day page row (`.row`): number · title · feasibility mark · target box · 5 bubbles ·
+ * actual box · check. On narrow pages the controls (bubbles…) wrap below the title.
  */
 export function DayTaskRow({
   slot,
@@ -220,9 +251,15 @@ export function DayTaskRow({
   onTargetCommit,
   onBubbleClick,
   onToggleDone,
+  pop,
+  spark,
 }: {
   slot: number;
   title: string;
+  /** The bubble just filled by a click (ignite + ring), if it belongs to this row. */
+  pop?: BubblePop | null;
+  /** Fire the spark burst (only right after the user ticked this row). */
+  spark?: boolean;
   targetPomodoros: number | null;
   completedPomodoros: number;
   isDone: boolean;
@@ -245,11 +282,13 @@ export function DayTaskRow({
       aria-label={`Day task ${slot}`}
       aria-keyshortcuts="Space Enter 1 2 3 4 5"
       onKeyDown={(e) => rowKeys(e, { onToggleDone, onBubbleClick })}
-      className={clsx("mb-3 flex flex-wrap items-center gap-x-3 gap-y-1", rowFocus)}
+      {...rowState(isDone, spark)}
+      className={clsx("row", rowFocus)}
     >
-      <div className="flex min-w-40 flex-1 items-center gap-3">
+      <div className="flex min-w-0 flex-[1_1_180px] items-center gap-2.5">
         <SlotNumber slot={slot} />
-        <input
+        <span className="title">
+          <input
           type="text"
           id={inputId}
           aria-label={`Day task ${slot}`}
@@ -258,31 +297,32 @@ export function DayTaskRow({
           onChange={(e) => onTitleChange?.(e.target.value)}
           onKeyDown={(e) => titleKeys(e, nextInputId)}
           onBlur={() => onTitleCommit?.()}
-          className={clsx(titleInput, isDone && "text-muted-text line-through")}
+          className={titleInput}
         />
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <TargetBox slot={slot} value={targetPomodoros} onCommit={onTargetCommit} />
-        <Bubbles completed={completedPomodoros} onClick={onBubbleClick} />
-        <CountBox value={completedPomodoros} label="Actual pomodoros" />
-        <input
-          type="checkbox"
-          aria-label={`Day task ${slot} done`}
-          checked={isDone}
-          onChange={() => onToggleDone?.()}
-          data-native-keys
-          className={checkbox}
-        />
-        <span
-          className={clsx("w-3 text-center text-xs", mark?.className)}
-          title={feasibilityNote ?? mark?.label}
-          aria-label={mark ? `${mark.label}${feasibilityNote ? `: ${feasibilityNote}` : ""}` : undefined}
-        >
-          {mark?.mark}
         </span>
+        {mark && (
+          <span
+            className={clsx("w-3 shrink-0 text-center text-xs", mark.className)}
+            title={feasibilityNote ?? mark.label}
+            aria-label={`${mark.label}${feasibilityNote ? `: ${feasibilityNote}` : ""}`}
+          >
+            {mark.mark}
+          </span>
+        )}
+      </div>
+      <div className="ml-auto flex items-center gap-0.5">
+        <TargetBox slot={slot} value={targetPomodoros} onCommit={onTargetCommit} />
+        <Bubbles
+          completed={completedPomodoros}
+          taskTitle={title.trim() || `day task ${slot}`}
+          pop={pop}
+          onClick={onBubbleClick}
+        />
+        <CountBox value={completedPomodoros} label="Actual pomodoros" />
+        <CheckButton label={`Day task ${slot} done`} isDone={isDone} onToggle={onToggleDone} />
       </div>
       {feasibilityNote && title.trim() && (
-        <p className="w-full pl-9 text-xs italic leading-snug text-muted-text">{feasibilityNote}</p>
+        <p className="w-full pl-8 text-xs italic leading-snug text-muted">{feasibilityNote}</p>
       )}
     </div>
   );

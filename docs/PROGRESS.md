@@ -430,3 +430,257 @@ Next: phase 7 (deploy) — only when asked.
 - Open:
   - A real inbox magic-link email wasn't tested by the agent (the user's choice).
   - Phase 7 (deploy) only when asked. Remember to `db push` the new migration to the cloud project too. It's already applied on the current hosted project.
+
+## UI redesign step 1 — Design files + UI audit and mapping (fantasy themes)
+
+What was done:
+- Added `docs/ui/DESIGN.md` (exact copy of the attached design), `docs/ui/themes.css` (exact CSS from the project instruction) and `docs/ui/UI_AGENT_PROMPT.md` (the task prompt for the following steps).
+- Read CLAUDE.md and the UI files only: `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `app/review/page.tsx`, `app/login/page.tsx` (classes only), `components/*`. No code changed in this step.
+
+### Facts that shape the work
+- **Tailwind v4, there is no `tailwind.config.*`.** Tokens live in `app/globals.css` `@theme`. The prompt's `tailwind.config` mapping will therefore be done in `@theme` instead (e.g. `--color-page: var(--page)`, `--color-accent: var(--accent)`, `--font-head: …`, `--radius-page: var(--radius)`), giving the same utilities (`bg-page`, `text-accent`, `font-head`, `rounded-page`).
+  - Name clashes to watch: `@theme` already defines `--color-ink`, `--color-muted`, `--color-line`, which become `var(--ink)` etc. `--font-head`/`--font-body` are set by themes.css per theme, so the Tailwind font tokens must be named differently in `@theme` or reference them without redefining them (decide in step 2; no self-reference loops).
+- **Bubble click logic:** `components/Planner.tsx` → `onBubbleClick` on `DayTaskRow` calls `clickBubble()` (`lib/domain/bubbles.ts`) then `saveDayTask`. The same handler is reached from the row keys 1–5 (`rowKeys` in `components/TaskRow.tsx`). `components/Bubbles.tsx` only renders and calls `onClick(n)`.
+- **Task-done logic:** `components/Planner.tsx` `onToggleDone` for week rows (`saveWeekTask`) and day rows (`saveDayTask`). Reached from the native checkbox `onChange` and from Space on a focused row (`rowKeys`).
+- **Close-day logic:** `components/CloseDay.tsx`. Clicking "Close the day" opens the inline panel **and** sets `closed_at` right away (`saveCloseDay({ close: true })`, set once). Text fields debounce 800ms, rating saves immediately, tapping the selected rating clears it. There is no "unclose".
+- **Animation hooks (step 4 of the prompt)** fit in `Planner.tsx`: `lastPop` set inside `onBubbleClick` when the new count > old count; `lastSpark` set inside `onToggleDone` when `isDone` becomes true. Both handlers are user-triggered only (initial state comes from props), so sparks never fire on load.
+
+### Old colour classes (all to be replaced)
+`dark` is not used anywhere. Also replaced: the text-only AA tokens `muted-text`, `sage-text`, `warm-text` (phase 6) and `paper`.
+- `app/globals.css`: `@theme` tokens cream/paper/sage/skyblue/warm/muted(-text)/sage-text/warm-text/line, `body` cream background + Georgia + line-height 1.8, `::placeholder` muted-text, `:focus-visible` sage-text outline.
+- `app/layout.tsx:12` `bg-cream font-serif text-ink`.
+- `app/login/page.tsx:13` `bg-paper` + shadow, `:33` `focus:border-sage-text`, `:39` `decoration-sage`, `:44` `text-warm-text`.
+- `app/review/page.tsx:49` `decoration-skyblue`, `:55` `bg-paper` + shadow; many `text-muted-text`.
+- `components/Bubbles.tsx:27` `border-sage bg-sage`, `hover:bg-[#f0ede8]`.
+- `components/CloseDay.tsx:107` `border-sage hover:bg-sage/10`, `:136` `focus:border-sage-text`, `:156` `border-sage bg-sage hover:border-sage`.
+- `components/Notes.tsx:23` `focus:border-sage-text`.
+- `components/Planner.tsx:175` `text-warm-text` (save error), `:182` `bg-paper` + shadow, `:268` `text-warm-text` (overload line).
+- `components/ReviewCard.tsx:17` `text-sage-text`, `:33` `bg-paper`, `:36` `decoration-skyblue`.
+- `components/TaskRow.tsx:9–11` feasibility marks `text-sage-text` / `text-warm-text`, `:15` `focus:border-sage-text`, `:16` `accent-sage` (checkbox), `:60` `focus:outline-sage-text` (row focus), `:167` `hover:border-sage`, `:199` `focus:border-sage-text`.
+- `components/TopBar.tsx:53` `border-skyblue bg-skyblue hover:border-skyblue`, `:54` + `:68` `decoration-skyblue`.
+
+### Mapping: existing component → what changes
+| Area | Today | Change |
+|---|---|---|
+| **Header** | None. `TopBar` is a single nav row (week arrows, day selector, saved status, Review link, sign out). | New header row in `Planner`: "Planner" (`.head`, 26px, 3px tracking) + subline `{done} / {target} {unit} gathered today` (sum of `completedPomodoros` / `totalTarget()` of the day tasks) + `ThemeSwitcher` (3 `.pill`). |
+| **Week nav + day pills** (`TopBar.tsx`) | `<Link>`s, "Week of dd MMM", day = weekday + date number, selected = skyblue + `aria-current="date"`, today underlined. | "Week of 9 November" (`d MMMM`), arrows and days as `.pill`. Days stay `<Link>` (URL state) — see Q2 for the selected style. |
+| **Pages** (`Planner.tsx`, `Page.tsx`) | One paper sheet, CSS grid 2 cols ≥900px, `Page` sections separated by a border; max-width 1400. | Two separate `.page` cards in a flex-wrap row, gap 24px, week `flex: 1 1 460px`, day `flex: 1 1 560px`, padding 32px, inner gap 22px; max-width 1280, page padding 32px 24px. They stack below ~1000px by flex-basis. |
+| **Week page** | "Weekly Planning" + "Week of dd / MM / yyyy"; section titles from the prototype; collapsible below 900px (Show/Hide). | Themed page title ("Quests of the Week" …) and themed section names + DESIGN subtitles from `lib/theme.ts`. Collapse toggle: see Q5. |
+| **Day page** | "Daily" left, date + weekday right; prototype section titles. | Date (left) + weekday uppercase (right); themed section names + DESIGN subtitles. |
+| **TaskRow (day)** | `div[data-row]` flex-wrap: num · underline `<input>` (line-through when done) · TargetBox (button→input) · Bubbles · CountBox · native checkbox · feasibility mark · note line. | `.row[data-done]`, `.num`, `.title` **wrapper span around the input** (the `::after` strike can't live on an `<input>`), target as `.box` (still click-to-edit), `Bubble`×5, `.box.actual`, `.chk` button (`aria-pressed`, label "Day task N done"), `data-spark`. Keyboard shortcuts, Enter/Escape, ids unchanged. Feasibility: see Q4. |
+| **TaskRow (week)** | num · input · native checkbox. | Same `.row` with `.num`, `.title`, `.chk`. |
+| **Bubbles** (`Bubbles.tsx`) | 5 round buttons, sage fill, `aria-label "Pomodoro N"`, `tabIndex=-1`, "+N" overflow. | New `components/Bubble.tsx` (`.bub[data-shape]`, SVG per theme: orb/star/fly, `aria-pressed`, `data-pop`, key `${index}-${n}`), label "Pomodoro N for {title}". `Bubbles` keeps the loop and "+N". Keep `tabIndex=-1` (focus stays on rows, keys 1–5) — phase 6 decision. |
+| **Check** | native `<input type=checkbox accent-sage>`. | `.chk` `<button aria-pressed>` with the SVG + `.burst`. Space/Enter native on button (keep `data-native-keys`). |
+| **Quote** (`Quote.tsx`) | Georgia italic 0.95rem, small-caps author, top/bottom hairline. | Italic 22px centered (body font), author uppercase 12px muted. |
+| **Notes** (`Notes.tsx`) | "Notes" + subtitle, bordered textarea. | Themed title ("Scroll of notes" …), `.field` textarea; subtitle kept; autosave unchanged. |
+| **Close-the-day** (`CloseDay.tsx`) | Outlined "Close the day" button → panel (always open once closed), "closed" label. | Themed button (`.btn`), panel `.unfold`, textareas `.field`, sealed stamp `.seal` with themed text + rating, "Reopen the day" `.btn.ghost`. Flow: see Q1. |
+| **Rating** | 28px round buttons, sage when selected. | `.rate` (44px), `aria-pressed` kept; deselect-on-retap kept. |
+| **Sealed state** | small italic "closed". | `.seal` stamp (see Q1). |
+| **Weekly Review** (`app/review/page.tsx`, `ReviewCard.tsx`) | paper sheet, sage ✓, skyblue underlines. | `.page` surfaces, `.head` headings, done ✓ in `--accent`, not-done in `--muted`, links underline in accent, `.pill`/arrows for week nav. No animations. |
+| **Login** (`app/login/page.tsx`) | paper card, sage/warm. | Not in DESIGN; restyle with the same tokens (`.page`, `.field`, `.btn`, title "Planner") so it isn't left in the old palette. |
+| **Status / warnings** | "saving… / saved / not saved" (warm on error), overload line in warm, feasibility ⚠/✕ in warm. | No warning colour exists in themes.css — see Q4. |
+| **Global** | Georgia, line-height 1.8, sage focus ring for `[tabindex]` rows and checkboxes. | Fonts via `next/font` + themes.css; themes.css focus ring covers button/a/input/textarea; add the same `--glow` ring for `[data-row]:focus` (rows are `tabIndex=-1` groups). |
+
+### Differences from DESIGN.md §3–4 and proposed approach (needs user confirmation)
+The structure matches well (separate week/day halves, rows num·title·target·bubbles·actual·check, inline close-day). No big restructuring is needed. Points that need a decision:
+1. **Q1 Close-the-day flow.** Today one click opens the panel *and* sets `closed_at`. DESIGN has a button → unfolding panel → sealed stamp + "Reopen the day". `closed_at` can't be cleared without changing the Server Action. **Proposal (no logic change):** the themed button ("Seal the day") opens the panel with `.unfold` and sets `closed_at` as today. While the day is closed, the `.seal` stamp (themed text + rating or "—") drops in above the fields. On a closed day loaded later, the stamp shows with the panel folded and a "Reopen the day" ghost button that unfolds the fields again for editing (UI state only; `closed_at` stays).
+2. **Q2 Day pills are links, not toggle buttons.** `aria-pressed` on a link is invalid. **Proposal:** keep `<Link aria-current="date">`, and add one rule in globals.css: `.pill[aria-current="date"]` = same look as `.pill[aria-pressed="true"]`. Pill text: weekday + date number ("Mon 9"), today keeps a subtle underline.
+3. **Q3 Header subline "today".** The page loads only the *selected* day. **Proposal:** count the selected day's tasks; text says "gathered today" when the selected day is today, otherwise "gathered on Mon 9".
+4. **Q4 Warning colour.** themes.css has no warning token, but feasibility ⚠/✕, the overload line and "not saved" use `warm`. **Proposal:** no new colour: ✓ in `--accent`, ⚠/✕ and the overload line in `--ink` italic (symbol carries the meaning), "not saved" in `--ink`. Alternative: add a `--warn` token per theme (design change).
+5. **Q5 Week collapse on mobile.** DESIGN only says "stack, week first". **Proposal:** keep the existing Show/Hide toggle below ~1000px (it keeps the day page near the top on phones), styled as `.btn.ghost`.
+6. **Q6 Header right side.** DESIGN puts only the theme switcher there; the app also has Review, sign out and the saved status. **Proposal:** header right = theme switcher + Review link + sign out (small `.btn.ghost`); saved status as small muted text under/next to the subline.
+7. Tailwind v4: mapping goes into `@theme` in globals.css (no config file) — informational.
+8. Breakpoint changes from 900px (CLAUDE.md) to ~1000px via flex-basis (DESIGN wins for visuals) — informational.
+
+Next step (after confirmation): fonts + tokens (`app/layout.tsx`, `app/globals.css`).
+
+**Decision (user):** all proposals Q1–Q6 approved as written (no `--warn` token; Tailwind mapping in `@theme`). The next steps implement them without further questions.
+
+## UI redesign step 2 — Fonts, theme tokens and Tailwind mapping
+
+What was done:
+- **Fonts:** `app/layout.tsx` loads Cinzel (500/700), EB Garamond (400/500 + italic), Marcellus (400), Cormorant Garamond (500/600 + italic), Alegreya (400/500/700 + italic) and Alegreya SC (500/700) with `next/font/google`. They are exposed as `--font-cinzel`, `--font-eb-garamond`, `--font-marcellus`, `--font-cormorant`, `--font-alegreya` and `--font-alegreya-sc`, and all the variable classes are on `<html>`. `<body>` uses `bg-bg font-body text-ink`.
+- **Tokens:** `app/globals.css` = `@import "tailwindcss"`, then the Tailwind mapping, a few app rules, then `docs/ui/themes.css` appended verbatim (checked with `diff`). The old cream/paper/sage/skyblue/warm `@theme` tokens, the Georgia body and the sage focus ring are removed.
+- **Tailwind mapping (v4, there is no tailwind.config):**
+  - `@theme inline` defines `--color-bg/page/line/ink/muted/accent/accent-ink/glow: var(--…)` and `--radius-page: var(--radius)`. This gives `bg-page`, `text-accent`, `border-line`, `rounded-page`, … and they follow `data-theme`.
+  - `font-head` / `font-body` are defined with `@utility` (`font-family: var(--font-head|body)`). They are **not** `@theme` tokens because themes.css already owns `--font-head`/`--font-body`. A same-named `@theme` token made Tailwind emit a self-referencing `:root{--font-head:var(--font-head)}`.
+- **Kept in globals.css:** `body { line-height: 1.8 }`, a `::placeholder` colour set to `--muted`, and a `--glow` focus ring for `[type=checkbox]` and `[tabindex]` (focusable rows), which themes.css doesn't cover.
+- **Old classes replaced in components:**
+  - `muted-text` → `muted`
+  - `sage` / `skyblue` → `accent`
+  - `paper` → `page`
+  - `sage-text` focus borders → `accent`
+  - the row focus outline → `glow`
+  - `warm-text` warnings → `ink` (Q4: no warning colour)
+  - `font-serif` → `font-body`
+  - Selected rating and selected day use `text-accent-ink` on `bg-accent`.
+  - This is a colour swap only. Layout and markup are unchanged; the restyle to `.page` / `.row` / `.pill` etc. comes in the later steps.
+- Verified:
+  - `grep` finds no cream/sage/skyblue/warm/dark/paper/muted-text class.
+  - `npm run lint` is clean, `npm test` passes 91/91, `next build` succeeds.
+  - `/login` was rendered locally with dummy Supabase env (no secrets in the container). Body background `#120E19`, body font EB Garamond, `--font-head` resolves to Cinzel.
+- Open / next: theme registry + ThemeProvider/Switcher (prompt §2), then the component restyle (§3) and the animation triggers (§4). The login card still has its old inline shadow; it gets restyled with `.page` in the component step.
+
+## UI redesign step 3 — Theme registry, ThemeProvider, no-flash script, ThemeSwitcher
+
+What was done:
+- **`lib/theme.ts`** (plain module, server + client):
+  - `THEME_KEYS`: `grimoire` (default), `astral`, `forest`.
+  - Typed `THEMES` registry. Each theme has label, `bubbleShape` (`orb` / `star` / `fly`), `pomodoroUnit`, `closeDayButton`, `sealedStamp`, `notesTitle`, `weekPageTitle`, `weekGroups` (slots 1–5, 6–10, 11–12) and `dayGroups` (slots 1, 2–3, 4–5). All strings are verbatim from DESIGN.md §2.
+  - The shared subtitles are in the same file (`GROUP_LAYOUT`).
+  - Helpers: `slotGroups(theme, "week"|"day")` returns the three groups (slots, label, subtitle); `slotGroup(theme, kind, slot)` returns the group for one slot. Also exported: `isThemeKey`, `THEME_LIST`, `THEME_STORAGE_KEY = "adh-theme"`, `THEME_INIT_SCRIPT`.
+- **No-flash script:** `app/layout.tsx` renders `<html data-theme="grimoire" suppressHydrationWarning>` plus an inline `<script>` in `<head>` (`THEME_INIT_SCRIPT`). The script reads `localStorage`, accepts only known keys and sets `data-theme` before first paint. This follows `node_modules/next/dist/docs/01-app/02-guides/preventing-flash-before-hydration.md`.
+- **`components/ThemeProvider.tsx`** (client):
+  - `<html data-theme>` is the source of truth, read with `useSyncExternalStore`.
+  - The server snapshot is the default theme, so hydration never mismatches. The client snapshot is the value the inline script set.
+  - `setTheme` sets `dataset.theme` and writes `localStorage` in try/catch. The `storage` event keeps other tabs in sync.
+  - `useTheme()` returns `{ theme, setTheme }`. The provider wraps the body content in the layout.
+- **`components/ThemeSwitcher.tsx`:** a `role="group"` with three `.pill` buttons (`aria-pressed`), labelled from the registry. For now it sits on the right of `TopBar` (Q6); the header restyle step moves it into the new header.
+- **`components/Planner.tsx`:** the hard-coded `WEEK_SECTIONS` / `DAY_SECTIONS` and the "Weekly Planning" title are replaced with `slotGroups(theme, …)` and `theme.weekPageTitle`, so the old prototype titles and subtitles are gone. Notes title, close-day text and sealed stamp are in the registry, but they get wired in the component step (Notes / CloseDay restyle).
+- **Tests:** `lib/theme.test.ts` covers keys, slot coverage, shared subtitles, and the init script ignoring unknown values. lint is clean; `npm test` passes 96/96.
+- **Browser check** (Playwright, on a temporary public page that was not committed):
+  - Clicking a pill changes `data-theme` and the labels, and writes `adh-theme`.
+  - After a reload, `data-theme` is already `forest` when the document is parsed (before hydration). No console or hydration errors.
+  - A bogus stored value falls back to grimoire. Without JS the page is grimoire.
+- Note: `npx tsc --noEmit` reports `LayoutProps` missing until `next dev`/`next build` generates the route types. This is not new in this step.
+
+Next: the component restyle. This covers DESIGN §3–4: header with "Planner" + subline + switcher, pills, `.page` layout, rows, `Bubble.tsx` using `theme.bubbleShape`, and Notes/CloseDay labels from the registry. Then the animation triggers.
+
+## UI redesign step 4 — Header, week navigation, day pills and page layout
+
+What was done:
+- **`components/TopBar.tsx`** now exports `Header` and `WeekNav` (client components; `TopBar` is gone).
+  - `Header`: "Planner" (not themed; `font-head`, 26px, `tracking-[3px]`) + subline `{done} / {target} {unit} gathered today`. done = sum of `completedPomodoros`, target = `totalTarget` of the selected day's tasks; unit = `theme.pomodoroUnit`. When the selected day isn't today the subline says "gathered on Wed 11" (Q3). The save status sits next to the subline (Q6). Right side: `ThemeSwitcher`, Review link and Sign out as `.btn.ghost`.
+  - `WeekNav`: ‹ / › as round `.pill` links, "Week of 9 November" in `.head`, Mon–Sun `.pill` links ("Mon 9"). Selected day = `aria-current="date"` (Q2, links can't be `aria-pressed`); `globals.css` styles `.pill[aria-current="date"]` like `.pill[aria-pressed="true"]`, and today (not selected) gets an accent underline via `data-today`. Below 600px the pills are a 7-column grid with weekday over date so they fit in one row at 390px. Navigation logic (hrefs from `page.tsx`) unchanged.
+- **Layout (`Planner.tsx`)**: `<main>` max-w 1280px, `px-6 py-8`, gap 24px. Pages in `flex flex-wrap gap-6`: week `flex-[1_1_460px]`, day `flex-[1_1_560px]` → side by side from ~1092px viewport, stacked (week first) below. The week Show/Hide toggle (Q5) is now `.btn.ghost` and shows below 1092px (the stacking point).
+- **`components/Page.tsx`**: `Page` = `.page` + `flex flex-col gap-[22px]`, padding 32px (20px below 600px so rows have room on phones — small deviation from DESIGN's 32px). `PageTitle` and `Section` titles use `.head`, subtitles `.sub`, all from `lib/theme.ts`.
+- **Day page order**: date ("11 November 2026", `.head`) left + weekday (uppercase `.head`, muted) right → quote → 3 groups → overload line (`empty:-mt-[22px]` cancels the gap when empty, still an aria-live region) → notes → close-the-day. The old "Daily" title and the "Week of dd / MM / yyyy" line on the week page are removed (the nav row shows the week). Outer margins removed from Quote / Notes / CloseDay so the 22px flex gap controls spacing; their contents are restyled in later steps.
+- **Tailwind vs themes.css**: themes.css is unlayered, so it beats Tailwind's layered utilities. Where a utility must override a themes.css property (e.g. `.pill`/`.btn` padding or font-size) it uses the v4 important suffix (`px-3!`, `text-[13px]!`).
+- Verified: lint clean, `npm test` 96/96. Playwright on a temporary unauthenticated page with fake data (not committed): at 1440px the pages sit side by side (554px + 654px, gap 24px), no horizontal scroll; at 390px they stack, week first, pills in one row, no horizontal scroll; switching to Star Chart / Grove changes the unit, page title and section names; no console errors.
+
+Next: TaskRow / Bubble / check restyle (`.row`, `Bubble.tsx`), Quote / Notes / CloseDay restyle (themed notes title, `.unfold`, `.seal`), then the animation triggers.
+
+## UI redesign step 5 — Task rows, Bubble component, check button, animation triggers
+
+What was done:
+- **`components/Bubble.tsx`** (new): `<button class="bub" data-shape={orb|star|fly} aria-pressed aria-label="Pomodoro N for {title}">` with the SVG from DESIGN §6 (`viewBox 0 0 20 20`, `aria-hidden`). `data-pop="true"` only when told to. `tabIndex=-1` kept: focus stays on the row and keys 1–5 click bubbles (phase 6 decision). An empty title is labelled "day task {slot}".
+- **`components/Bubbles.tsx`**: renders 5 `Bubble`s in `theme.bubbleShape` (from `useTheme()`). The popped bubble gets `key={`${index}-${n}`}`, so every new pop remounts it and replays ignite + ring. `+N` overflow only renders when there is one. The click logic is unchanged: `clickBubble()` in `Planner`, so clicking the last lit bubble still unfills it.
+- **`components/TaskRow.tsx`**:
+  - Both rows are now `.row` with `data-done="true|false"` and `data-spark`. Inside: `.num` (no trailing dot), and a `.title` span wrapping the borderless title input, because the `::after` strike can't live on an `<input>`. The input inherits font and color, so done rows dim through `.title`.
+  - The native checkbox is replaced by `CheckButton`: `.chk` `<button aria-pressed>` labelled "Day/Week task N done", with the SVG + `.burst` with 6 `<i>`. It keeps `data-native-keys`, so Space/Enter on the button work natively and Space on the row still toggles.
+  - Day row: [num · title · feasibility mark] as one flex item (`flex: 1 1 180px`), then [target `.box` · 5 bubbles · `.box.actual` · `.chk`] as a second item with `ml-auto` and 2px gaps. On narrow pages the second item wraps onto its own line. It fits 302px of content width at a 390px viewport, even with "+2".
+  - The feasibility mark moved from after the checkbox to right after the title, and it only renders when set. That saves horizontal room on phones.
+  - Week row: `.row` with `flex-nowrap!`, containing num · title · check.
+  - The target box is `.box` (30px per DESIGN). A new `.box-hit` rule in `globals.css` adds an invisible `::before` with `inset: -7px` that brings the hit area to 44px.
+- **Animation triggers (`Planner.tsx`, component state only, never saved):**
+  - `lastPop: { taskId: "d{slot}", index, n, shape } | null`. It is set in `onBubbleClick` only when the new count is greater than the old one, and `n` goes up by one on each pop. A click that lowers the count clears it for that task. `shape` is the theme shape at click time, and the pop renders only while it matches the current shape, so a theme switch doesn't replay ignite. The pop also renders only on a lit bubble, because `ignite ... both` would otherwise show an unfilled bubble as filled.
+  - `lastSpark: "d{slot}" | "w{slot}" | null`. It is set in `onToggleDone` only when `isDone` becomes true, by click or by Space on the row. Unticking that row clears it, so ticking it again replays the burst. Initial state is `null`, so nothing sparks on load.
+- No changes to Server Actions, Supabase or `lib/domain`.
+- Verified:
+  - lint is clean and `npm test` passes 96/96 (`tsc` only reports the known `LayoutProps` item).
+  - Playwright run on a temporary public page with fake data (deleted, not committed):
+    - On load there are 0 `data-spark` / `data-pop`.
+    - Clicking bubble 3 puts `data-pop` on that bubble (ignite + ring captured).
+    - Ticking a row draws the check, strikes through the title and fires sparks on that row only. Ticking a week row moves the spark there.
+    - Clicking the last lit bubble unfills it and removes the pop.
+    - Shapes change to star / fly with the theme.
+    - Bubbles are 38×44 and checks are 44×44.
+    - After a reload there are 0 sparks.
+    - Neither 1440px nor 390px scrolls horizontally, and day controls wrap under the title at 390px. No page errors.
+
+Next: Quote / Notes / CloseDay restyle (themed notes title, `.field`, `.unfold`, `.rate`, `.seal` + "Reopen the day"), Weekly Review and Login restyle.
+
+## UI redesign step 6 — Quote, notes, close-the-day panel, rating and sealed stamp
+
+What was done (UI only; Server Actions, data flow and `lib/domain` unchanged):
+- **`components/Quote.tsx`**: body font italic 22px, centred; author below in uppercase 12px `text-muted` ("— Author"). The old hairline borders are gone (the page's 22px gap separates blocks). The quote pool and the per-day selection (`loadPlanner` → `day.quote`) are untouched.
+- **`components/Notes.tsx`** (client now, reads `useTheme()`): `.head` heading containing a `<label for="day-notes">` with `theme.notesTitle` (Scroll of notes / Observations / Field notes), the shared `.sub` subtitle, and `<textarea id="day-notes" class="field">`. The save logic (800ms debounce + flush on blur in `Planner`) is unchanged.
+- **`components/CloseDay.tsx`** (Q1 flow as approved):
+  - Not closed: one `.btn.solid` with `theme.closeDayButton` (Seal the day / Chart the sky / Rest the grove). Clicking it opens the panel and calls `saveCloseDay({ close: true })` as before, and focus moves to Highlight.
+  - Open: the fields are wrapped in `.unfold`, so they unfold on mount. Highlight / What worked / What didn't are `.field` textareas with `.head` labels and `.sub` subtitles. Rating = ten `.rate` buttons (44px) with `aria-pressed`; tapping the selected one still clears it.
+  - When `closedAt` is set, a `.seal` (`role="status"`) shows `theme.sealedStamp` (Day sealed / Sky charted / Grove at rest) plus the rating ("7 / 10", or "—"). It is mounted once, so it drops in when the server confirms the close. Theme or rating changes update it without replaying.
+  - A day that loads already sealed shows the stamp with the fields folded, plus a **"Reopen the day"** `.btn.ghost`. That button unfolds the fields again and focuses Highlight. It is UI state only: `closed_at` stays, because no reopen action exists (see OPEN_QUESTIONS).
+  - The panel heading is `theme.closeDayButton`, and the old "closed" label is replaced by the stamp.
+- **`lib/theme.ts`**: new shared `REOPEN_DAY_LABEL`. The field titles and subtitles stay as constants in `CloseDay` because they are not themed.
+- Verified:
+  - lint is clean, and `npm test` passes 96/96.
+  - Playwright on a temporary public page with fake data, with `saveCloseDay` stubbed to succeed. Both were removed and not committed.
+    - Quote computed style: 22px, italic, centred.
+    - "Seal the day" is `btn solid`. Clicking it gives `.unfold`, and the stamp drops in.
+    - Picking 8 makes the stamp show "8 / 10".
+    - Switching to Star Chart / Grove changes the heading, stamp and notes title.
+    - At 390px, a pre-sealed day shows stamp + Reopen. After Reopen, the fields unfold, Highlight has focus, and there is no horizontal scroll.
+    - With reduced motion, `.seal` and `.unfold` have `animation: none`.
+    - No page errors.
+
+Next: Weekly Review and Login restyle, then final check (1440/390, reduced motion) and PR.
+
+## UI redesign step 7 — Weekly Review restyle
+
+What was done (UI only; `loadReview`, `reviewWeek` and the review data are unchanged, no new animations):
+- **`components/ReviewView.tsx`** (new): the review markup moved out of `app/review/page.tsx`, which now only loads data and renders `<ReviewView review weekStart />`. This lets the view be rendered with fake data for checks.
+  - Nav row like the planner: `.pill` ‹ › arrows, `.head` "Week of 9 November", then `ThemeSwitcher` and a `.btn.ghost` "Planner" link.
+  - One `.page` surface (padding 20px, 32px from 600px). `.head` "Weekly Review" (26px, 3px tracking) and a `.sub` date range.
+  - Stats: muted `.head` labels; the done counts (day tasks, pomodoros, weekly tasks) are in `text-accent`.
+  - Empty states use `.sub`.
+- **`components/ReviewTaskList.tsx`** (new, client): `TaskList` with a new `kind: "week" | "day"` prop. Tasks are split under the theme's group names from `slotGroups()` in `lib/theme.ts`, shown as small muted `.head` labels. Empty groups are hidden. Done items are ink with a `text-accent` ✓; not-done items are `text-muted` with a muted ✗. The screen-reader "Done:/Not done:" text is kept.
+- **`components/ReviewCard.tsx`**: the day card is a bordered block (`rounded-[calc(var(--radius)/2)]`, `border-line`) inside the page. The date is a `.head` link with an accent underline on hover. The rating is in the heading font with the number in accent. It still re-exports `TaskList`.
+- No `.btn.solid`, `.field` or `.rate` is used, because the review is read-only.
+- No old palette classes remain in `app/` or `components/`.
+- Verified:
+  - lint is clean and `npm test` passes 96/96.
+  - Playwright on a temporary public page (`/auth/tmp-review`, fake data via `reviewWeek`, deleted and not committed). All three themes were checked at 1440px and Grove at 390px.
+    - Group labels switch with the theme.
+    - There is no horizontal scroll and no page errors.
+  - Screenshots: `docs/screenshots/review-1440.png` (Grimoire), `review-astral-1440.png`, `review-390.png` (Grove).
+
+Next: Login restyle (if still needed), final check (1440/390, reduced motion) and PR.
+
+## UI redesign step 8 — Verification: lint, tests, build, responsiveness, reduced motion
+
+No code changes were needed in this step. Only docs and screenshots were added.
+
+Automated results:
+- `npm run lint`: clean. `npm test`: 12 files, 96/96 pass. `npm run build`: succeeds with placeholder Supabase env vars. Run on its own, `tsc --noEmit` still reports the known `LayoutProps` item, because that type is generated by `next build` / `next typegen`. The build's own type check passes.
+- Static audit:
+  - None of the old palette classes remain (`cream`, `sage`, `skyblue`, `warm`, `dark`).
+  - No themed strings are hard-coded outside `lib/theme.ts`.
+  - There are no clickable `div` or `span` elements.
+  - The redesign made no changes to `supabase/`, `lib/domain/` or the Server Actions (`git diff 2a2f08f..HEAD`).
+  - The reduced-motion rule is in `app/globals.css`.
+- Playwright run against a temporary public page with fake data. The page was deleted and not committed. Saves show "not saved" because there is no session.
+  - **No flash:** I saved `astral`, blocked every `/_next/static/*.js` so React never hydrated, and reloaded. `<html data-theme>` was still `astral`, so the inline head script sets the theme before paint.
+  - **Theme switching:** switching to Star Chart / Grove / Grimoire changes `data-theme`, the bubble shape (star / fly / orb), the close button (Chart the sky / Rest the grove / Seal the day) and the subline unit (stars / fireflies / mana). After a reload, Grove persists.
+  - **Pop and spark:** on load there are 0 `data-pop` and 0 `data-spark`. Filling bubble 2 puts `data-pop` on it, with animation `ignite, breathe`. Clicking it again unfills it and clears the pop. Ticking day task 2 sets `data-spark` and `data-done` on that row only.
+  - **Unfold and seal:** "Seal the day" renders `.unfold`. In a real session the stamp appears once the server confirms the close, as verified with a stub in step 6. A pre-sealed day shows the stamp ("Day sealed" / "Sky charted", 8 / 10). "Reopen the day" unfolds the fields and focuses Highlight.
+  - **Targets and labels:** every `.pill`, `.chk`, `.rate` and `.btn` is at least 44px tall, and `.bub` is 38×44. Every `<button>` has an accessible name.
+  - **Layout:** at 1440px the two pages sit side by side with no horizontal scroll. At 390px they stack (week first, collapsible) and `scrollWidth` is 390.
+  - **Reduced motion** (`reducedMotion: "reduce"`): pop, spark and unfold all report `animation-name: none` and body transitions are `0s`. Bubbles still fill and rows still tick.
+  - No page errors.
+- Screenshots: `docs/screenshots/verify-1440.png`, `verify-390.png`, `verify-seal-390.png`.
+
+### Manual test checklist (human)
+Run the app (Preview, or `npm install && npm run dev`) and sign in.
+1. **Themes / no flash:** switch Grimoire → Star Chart → Grove in the header. The colours, fonts, corner radius, bubble shape, section names, notes title, close button and subline unit should all change. Reload on each theme: the page should paint in that theme straight away, with no flash of Grimoire.
+2. **Bubbles / ticks:** fill a bubble and check that it ignites with a gold ring. Click the last lit bubble and check that it fades out. Tick a task: the check should draw in, the title should strike through and sparks should fly. Reload: ticked rows show as done with **no** sparks.
+3. **Close the day:** press "Seal the day" and check that the panel unfolds. Pick a rating and check that the stamp drops in at −8° with the themed text and rating. Reload: the stamp shows with "Reopen the day". Press it and check that the fields unfold again.
+4. **Widths:** at 1440px the pages should sit side by side. At 390px they should stack (week first), the day bubbles should wrap under the title, and there should be no horizontal scroll.
+5. **Reduce motion:** turn on the OS "Reduce motion" setting (macOS: Accessibility → Display; Windows: Settings → Accessibility → Visual effects → Animation effects off). Repeat steps 1–3. Nothing should animate or cross-fade, but everything should still work.
+
+Human check: the user confirmed all 5 checklist items with no issues.
+
+## UI redesign — final summary (PR)
+
+The fantasy-theme UI change (docs/ui/DESIGN.md + docs/ui/themes.css) is complete and handed over for review.
+- **Fonts:** Cinzel, EB Garamond, Marcellus, Cormorant Garamond, Alegreya, Alegreya SC through `next/font/google`, exposed as `--font-*` variables on `<html>`.
+- **Tokens:** `themes.css` is appended to `app/globals.css` and the old cream/sage palette is removed. The Tailwind v4 theme maps `bg/page/line/ink/muted/accent/glow`, `font-head/body` and `rounded-page` to the CSS variables.
+- **Themes:**
+  - `lib/theme.ts` is the registry for Grimoire, Star Chart and Grove: labels, bubble shape, unit and section names. It is covered by `lib/theme.test.ts`.
+  - `components/ThemeProvider.tsx` stores the theme in localStorage under `adh-theme`.
+  - An inline head script sets the theme before paint, so there is no flash of the wrong theme.
+  - `components/ThemeSwitcher.tsx` shows the three themes as pills.
+- **Components:** TopBar (header, subline, nav, day pills), Page, TaskRow (`.row`, `.box`, `.chk`), the new Bubble/Bubbles, Quote, Notes, CloseDay (`.unfold`, `.rate`, `.seal`, Reopen) and the Weekly Review (new ReviewView and ReviewTaskList) are restyled. Login is restyled too.
+- **Animation triggers:** the client-only states `lastPop` (keyed remount) and `lastSpark` are never saved.
+- **Not changed:** `supabase/`, `lib/domain/` and the Server Actions.
+- **Verification:** lint is clean, tests pass 96/96 (re-run for the PR) and `npm run build` succeeds. Playwright checked 1440/390px, reduced motion and no-flash. The user confirmed the manual checklist.
+- **Open:** storing the theme in Supabase (later option) and making "Reopen the day" un-seal on the server. Both are in `docs/OPEN_QUESTIONS.md`.
