@@ -1,44 +1,24 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
-import type { DayReview, ReviewTask } from "@/lib/domain/review";
+import type { DayReview } from "@/lib/domain/review";
 import { plannerHref } from "@/lib/domain/selection";
+import { TaskList } from "./ReviewTaskList";
 
-const sectionTitle = "mb-2 text-[0.75rem] font-light uppercase tracking-[1px]";
-
-/** Done (accent ✓) or not done (muted ✗) task list; nothing when empty. */
-export function TaskList({ title, tasks, done }: { title: string; tasks: ReviewTask[]; done: boolean }) {
-  if (tasks.length === 0) return null;
-  return (
-    <div className="mt-4 border-t border-line pt-4">
-      <h3 className={sectionTitle}>{title}</h3>
-      <ul className="text-[0.9rem] leading-relaxed">
-        {tasks.map((t) => (
-          <li key={t.slot} className={done ? "text-ink" : "text-muted"}>
-            <span aria-hidden className={done ? "text-accent" : undefined}>
-              {done ? "✓" : "✗"}
-            </span>{" "}
-            <span className="sr-only">{done ? "Done: " : "Not done: "}</span>
-            {t.title}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+export { TaskList };
 
 /** One day of the weekly review: done / not done / highlight / rating / pomodoros. */
 export function ReviewCard({ day }: { day: DayReview }) {
   const date = parseISO(day.date);
   return (
-    <article className="border border-line bg-page p-5">
+    <article className="rounded-[calc(var(--radius)/2)] border border-line p-5">
       <header className="flex items-baseline justify-between gap-4">
-        <h2 className="text-[0.9rem]">
-          <Link href={plannerHref(day.date)} className="hover:underline decoration-accent underline-offset-4">
+        <h2 className="head text-base">
+          <Link href={plannerHref(day.date)} className="decoration-accent underline-offset-4 hover:underline">
             {format(date, "EEEE, MMM d")}
           </Link>
         </h2>
         {day.rating !== null && (
-          <span className="text-[0.9rem] tabular-nums">
+          <span className="font-head text-base tabular-nums text-accent">
             {day.rating}
             <span className="text-muted"> / 10</span>
           </span>
@@ -46,20 +26,20 @@ export function ReviewCard({ day }: { day: DayReview }) {
       </header>
 
       {!day.hasData ? (
-        <p className="mt-2 text-xs italic text-muted">Nothing written down.</p>
+        <p className="sub mt-2">Nothing written down.</p>
       ) : (
         <>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-1 text-[15px] text-muted">
             {day.done.length} done · {day.notDone.length} not done · {day.pomodorosDone}
             {day.pomodorosTarget > 0 && ` of ${day.pomodorosTarget}`} pomodoros
             {!day.closed && " · not closed"}
           </p>
-          <TaskList title="What got done" tasks={day.done} done />
-          <TaskList title="What didn't get done" tasks={day.notDone} done={false} />
+          <TaskList title="What got done" tasks={day.done} done kind="day" />
+          <TaskList title="What didn't get done" tasks={day.notDone} done={false} kind="day" />
           {day.highlight && (
             <div className="mt-4 border-t border-line pt-4">
-              <h3 className={sectionTitle}>Highlight</h3>
-              <p className="whitespace-pre-line text-[0.9rem] italic leading-relaxed">{day.highlight}</p>
+              <h3 className="head mb-2 text-sm">Highlight</h3>
+              <p className="text-[17px] whitespace-pre-line italic leading-relaxed">{day.highlight}</p>
             </div>
           )}
         </>

@@ -614,3 +614,24 @@ What was done (UI only; Server Actions, data flow and `lib/domain` unchanged):
     - No page errors.
 
 Next: Weekly Review and Login restyle, then final check (1440/390, reduced motion) and PR.
+
+## UI redesign step 7 — Weekly Review restyle
+
+What was done (UI only; `loadReview`, `reviewWeek` and the review data are unchanged, no new animations):
+- **`components/ReviewView.tsx`** (new): the review markup moved out of `app/review/page.tsx`, which now only loads data and renders `<ReviewView review weekStart />`. This lets the view be rendered with fake data for checks.
+  - Nav row like the planner: `.pill` ‹ › arrows, `.head` "Week of 9 November", then `ThemeSwitcher` and a `.btn.ghost` "Planner" link.
+  - One `.page` surface (padding 20px, 32px from 600px). `.head` "Weekly Review" (26px, 3px tracking) and a `.sub` date range.
+  - Stats: muted `.head` labels; the done counts (day tasks, pomodoros, weekly tasks) are in `text-accent`.
+  - Empty states use `.sub`.
+- **`components/ReviewTaskList.tsx`** (new, client): `TaskList` with a new `kind: "week" | "day"` prop. Tasks are split under the theme's group names from `slotGroups()` in `lib/theme.ts`, shown as small muted `.head` labels. Empty groups are hidden. Done items are ink with a `text-accent` ✓; not-done items are `text-muted` with a muted ✗. The screen-reader "Done:/Not done:" text is kept.
+- **`components/ReviewCard.tsx`**: the day card is a bordered block (`rounded-[calc(var(--radius)/2)]`, `border-line`) inside the page. The date is a `.head` link with an accent underline on hover. The rating is in the heading font with the number in accent. It still re-exports `TaskList`.
+- No `.btn.solid`, `.field` or `.rate` is used, because the review is read-only.
+- No old palette classes remain in `app/` or `components/`.
+- Verified:
+  - lint is clean and `npm test` passes 96/96.
+  - Playwright on a temporary public page (`/auth/tmp-review`, fake data via `reviewWeek`, deleted and not committed). All three themes were checked at 1440px and Grove at 390px.
+    - Group labels switch with the theme.
+    - There is no horizontal scroll and no page errors.
+  - Screenshots: `docs/screenshots/review-1440.png` (Grimoire), `review-astral-1440.png`, `review-390.png` (Grove).
+
+Next: Login restyle (if still needed), final check (1440/390, reduced motion) and PR.
