@@ -520,3 +520,28 @@ What was done:
   - `npm run lint` is clean, `npm test` passes 91/91, `next build` succeeds.
   - `/login` was rendered locally with dummy Supabase env (no secrets in the container). Body background `#120E19`, body font EB Garamond, `--font-head` resolves to Cinzel.
 - Open / next: theme registry + ThemeProvider/Switcher (prompt §2), then the component restyle (§3) and the animation triggers (§4). The login card still has its old inline shadow; it gets restyled with `.page` in the component step.
+
+## UI redesign step 3 — Theme registry, ThemeProvider, no-flash script, ThemeSwitcher
+
+What was done:
+- **`lib/theme.ts`** (plain module, server + client):
+  - `THEME_KEYS`: `grimoire` (default), `astral`, `forest`.
+  - Typed `THEMES` registry. Each theme has label, `bubbleShape` (`orb` / `star` / `fly`), `pomodoroUnit`, `closeDayButton`, `sealedStamp`, `notesTitle`, `weekPageTitle`, `weekGroups` (slots 1–5, 6–10, 11–12) and `dayGroups` (slots 1, 2–3, 4–5). All strings are verbatim from DESIGN.md §2.
+  - The shared subtitles are in the same file (`GROUP_LAYOUT`).
+  - Helpers: `slotGroups(theme, "week"|"day")` returns the three groups (slots, label, subtitle); `slotGroup(theme, kind, slot)` returns the group for one slot. Also exported: `isThemeKey`, `THEME_LIST`, `THEME_STORAGE_KEY = "adh-theme"`, `THEME_INIT_SCRIPT`.
+- **No-flash script:** `app/layout.tsx` renders `<html data-theme="grimoire" suppressHydrationWarning>` plus an inline `<script>` in `<head>` (`THEME_INIT_SCRIPT`). The script reads `localStorage`, accepts only known keys and sets `data-theme` before first paint. This follows `node_modules/next/dist/docs/01-app/02-guides/preventing-flash-before-hydration.md`.
+- **`components/ThemeProvider.tsx`** (client):
+  - `<html data-theme>` is the source of truth, read with `useSyncExternalStore`.
+  - The server snapshot is the default theme, so hydration never mismatches. The client snapshot is the value the inline script set.
+  - `setTheme` sets `dataset.theme` and writes `localStorage` in try/catch. The `storage` event keeps other tabs in sync.
+  - `useTheme()` returns `{ theme, setTheme }`. The provider wraps the body content in the layout.
+- **`components/ThemeSwitcher.tsx`:** a `role="group"` with three `.pill` buttons (`aria-pressed`), labelled from the registry. For now it sits on the right of `TopBar` (Q6); the header restyle step moves it into the new header.
+- **`components/Planner.tsx`:** the hard-coded `WEEK_SECTIONS` / `DAY_SECTIONS` and the "Weekly Planning" title are replaced with `slotGroups(theme, …)` and `theme.weekPageTitle`, so the old prototype titles and subtitles are gone. Notes title, close-day text and sealed stamp are in the registry, but they get wired in the component step (Notes / CloseDay restyle).
+- **Tests:** `lib/theme.test.ts` covers keys, slot coverage, shared subtitles, and the init script ignoring unknown values. lint is clean; `npm test` passes 96/96.
+- **Browser check** (Playwright, on a temporary public page that was not committed):
+  - Clicking a pill changes `data-theme` and the labels, and writes `adh-theme`.
+  - After a reload, `data-theme` is already `forest` when the document is parsed (before hydration). No console or hydration errors.
+  - A bogus stored value falls back to grimoire. Without JS the page is grimoire.
+- Note: `npx tsc --noEmit` reports `LayoutProps` missing until `next dev`/`next build` generates the route types. This is not new in this step.
+
+Next: the component restyle. This covers DESIGN §3–4: header with "Planner" + subline + switcher, pills, `.page` layout, rows, `Bubble.tsx` using `theme.bubbleShape`, and Notes/CloseDay labels from the registry. Then the animation triggers.

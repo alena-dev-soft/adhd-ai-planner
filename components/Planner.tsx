@@ -17,6 +17,8 @@ import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
 import { DayTaskRow, WeekTaskRow } from "./TaskRow";
 import { TopBar } from "./TopBar";
+import { useTheme } from "./ThemeProvider";
+import { slotGroups } from "@/lib/theme";
 import { useSaver, type SaveStatus } from "@/lib/use-saver";
 
 const NOTES_DEBOUNCE_MS = 800;
@@ -27,18 +29,6 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
   saved: "saved",
   error: "not saved",
 };
-
-const WEEK_SECTIONS = [
-  { title: "Five Most Important Tasks of the Week", subtitle: "If these are the only tasks you completed during the week, you'd be satisfied", slots: [1, 2, 3, 4, 5] },
-  { title: "Tasks of Secondary Importance", subtitle: "Do these only after you have completed the above tasks", slots: [6, 7, 8, 9, 10] },
-  { title: "Additional Tasks", subtitle: "Do these only after you have completed the above tasks", slots: [11, 12] },
-];
-
-const DAY_SECTIONS = [
-  { title: "Most Important Task of the Day", subtitle: "If this was the only thing you did today you'd be satisfied", slots: [1] },
-  { title: "Secondary Tasks of Importance", subtitle: "Completion of these tasks will make the day even better", slots: [2, 3] },
-  { title: "Additional Tasks", subtitle: "Do these only after you have completed the tasks above", slots: [4, 5] },
-];
 
 /**
  * Two facing pages. Week and day come from the URL (server-loaded). Every edit
@@ -72,6 +62,7 @@ export function Planner({
   const [dayTasks, setDayTasks] = useState(initialDayTasks);
   const [notes, setNotes] = useState(dayData.notes);
   const [weekOpen, setWeekOpen] = useState(false);
+  const { theme } = useTheme();
 
   const dates = weekDates(weekStart);
   const day = parseISO(selectedDate);
@@ -182,7 +173,7 @@ export function Planner({
       <div className="grid grid-cols-1 overflow-hidden bg-page shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
         <Page className="border-b-2 border-line min-[900px]:border-r-2 min-[900px]:border-b-0">
           <div className="flex items-center justify-between">
-            <PageTitle>Weekly Planning</PageTitle>
+            <PageTitle>{theme.weekPageTitle}</PageTitle>
             <button
               type="button"
               aria-expanded={weekOpen}
@@ -198,8 +189,8 @@ export function Planner({
           </p>
 
           <div id="week-tasks" className={clsx(!weekOpen && "hidden", "min-[900px]:block")}>
-            {WEEK_SECTIONS.map((s) => (
-              <Section key={s.title} title={s.title} subtitle={s.subtitle}>
+            {slotGroups(theme, "week").map((s) => (
+              <Section key={s.slots[0]} title={s.label} subtitle={s.subtitle}>
                 {s.slots.map((slot) => {
                   const t = weekTasks.find((w) => w.slot === slot)!;
                   return (
@@ -236,8 +227,8 @@ export function Planner({
 
           {dayData.quote && <Quote text={dayData.quote.text} author={dayData.quote.author} />}
 
-          {DAY_SECTIONS.map((s) => (
-            <Section key={s.title} title={s.title} subtitle={s.subtitle}>
+          {slotGroups(theme, "day").map((s) => (
+            <Section key={s.slots[0]} title={s.label} subtitle={s.subtitle}>
               {s.slots.map((slot) => {
                 const t = dayTasks.find((d) => d.slot === slot)!;
                 return (

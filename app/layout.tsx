@@ -7,6 +7,8 @@ import {
   EB_Garamond,
   Marcellus,
 } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Theme fonts (docs/ui/DESIGN.md §2). themes.css picks them per theme via --font-head / --font-body.
@@ -41,8 +43,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${fontVars} h-full antialiased`}>
-      <body className="min-h-full bg-bg font-body text-ink">{children}</body>
+    // suppressHydrationWarning: the inline script may change data-theme before React hydrates.
+    <html lang="en" data-theme={DEFAULT_THEME} className={`${fontVars} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Applies the saved theme before first paint (no flash of the default theme). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full bg-bg font-body text-ink">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

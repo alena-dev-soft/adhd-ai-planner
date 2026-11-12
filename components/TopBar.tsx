@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { signOut } from "@/app/login/actions";
 import { plannerHref } from "@/lib/domain/selection";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
-/** ‹ Week of DD MMM › · Mon–Sun selector · link to Review · sign out. */
+/** ‹ Week of DD MMM › · Mon–Sun selector · theme switcher · link to Review · sign out. */
 export function TopBar({
   weekStart,
   dates,
@@ -61,7 +62,8 @@ export function TopBar({
         })}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <ThemeSwitcher />
         {status}
         <Link
           href={`/review?week=${weekStart}`}

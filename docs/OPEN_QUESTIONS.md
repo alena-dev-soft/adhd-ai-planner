@@ -64,3 +64,7 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 - **Review header:** shows "Average rating N / 10" (one decimal), "—" when no ratings.
 - **`week_task_id`:** stays unused for the MVP.
 - **Keyboard:** Escape from a title to its row is enough; rows are not Tab stops.
+
+## UI redesign (fantasy themes)
+
+- **Store theme preference in Supabase per user — later option.** Today the theme lives only in `localStorage` (`adh-theme`), so it is per browser/device, not per account. Moving it to Supabase needs a schema change (e.g. a `profiles.theme` column) and a way to apply it before paint (cookie or server-rendered `data-theme`).
