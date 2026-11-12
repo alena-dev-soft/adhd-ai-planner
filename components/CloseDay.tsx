@@ -1,9 +1,10 @@
 "use client";
 
-import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveCloseDay, type CloseDayResult } from "@/app/actions";
 import type { DayClosePatch } from "@/lib/domain/inputs";
+import { REOPEN_DAY_LABEL } from "@/lib/theme";
+import { useTheme } from "./ThemeProvider";
 
 const DEBOUNCE_MS = 800;
 const RATINGS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -16,8 +17,8 @@ const FIELDS: { field: TextField; title: string; subtitle: string }[] = [
   { field: "whatDidnt", title: "What didn't", subtitle: "No judgement, just notes for tomorrow" },
 ];
 
-const heading = "mb-1 text-[0.8rem] font-light uppercase tracking-[1px]";
-const subtitle = "mb-3 text-xs italic text-muted";
+const heading = "head block text-sm leading-snug";
+const subtitle = "sub mb-2";
 
 /**
  * "Close the day": an inline panel at the bottom of the day page (never a
@@ -42,8 +43,10 @@ export function CloseDay({
   closedAt: string | null;
   save: (run: () => Promise<{ ok: boolean }>) => Promise<void>;
 }) {
+  const { theme } = useTheme();
   const [closedAt, setClosedAt] = useState(initialClosedAt);
-  const [open, setOpen] = useState(initialClosedAt !== null);
+  // A day that loads already sealed shows the stamp with the fields folded.
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState<Record<TextField, string>>({ highlight, whatWorked, whatDidnt });
   const [rating, setRating] = useState(initialRating);
 
@@ -85,6 +88,13 @@ export function CloseDay({
     }
   }, [open]);
 
+  // Reopen only unfolds the fields again (UI state); closed_at stays set —
+  // there is no server-side reopen (docs/OPEN_QUESTIONS.md).
+  const reopen = () => {
+    setOpen(true);
+    focusOnOpen.current = true;
+  };
+
   const closeDay = () => {
     setOpen(true);
     focusOnOpen.current = true;
@@ -98,69 +108,82 @@ export function CloseDay({
     void send({ rating: next });
   };
 
-  if (!open) {
+  if (!open && closedAt === null) {
     return (
-      <div className="border-t border-line pt-5">
-        <button
-          type="button"
-          onClick={closeDay}
-          className="rounded-[3px] border border-accent px-3 py-1.5 text-xs uppercase tracking-[1px] text-ink hover:bg-accent/10"
-        >
-          Close the day
+      <div>
+        <button type="button" onClick={closeDay} className="btn solid">
+          {theme.closeDayButton}
         </button>
       </div>
     );
   }
 
   return (
-    <section aria-labelledby="close-day-title" className="border-t border-line pt-5">
-      <div className="mb-5 flex items-baseline justify-between">
-        <h3 id="close-day-title" className={heading}>
-          Close the day
-        </h3>
-        {closedAt && <span className="text-xs italic text-muted">closed</span>}
-      </div>
+    <section aria-labelledby="close-day-title" className="flex flex-col gap-5">
+      <h3 id="close-day-title" className="head text-base leading-snug">
+        {theme.closeDayButton}
+      </h3>
 
-      {FIELDS.map(({ field, title, subtitle: sub }) => (
-        <div key={field} className="mb-5">
-          <label htmlFor={`close-${field}`} className={clsx(heading, "block")}>
-            {title}
-          </label>
-          <p className={subtitle}>&ldquo;{sub}&rdquo;</p>
-          <textarea
-            id={`close-${field}`}
-            value={text[field]}
-            onChange={(e) => changeText(field, e.target.value)}
-            onBlur={flush}
-            rows={2}
-            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent"
-          />
-        </div>
-      ))}
-
-      <div>
-        <p id="close-rating" className={heading}>
-          Rating
-        </p>
-        <p className={subtitle}>&ldquo;How did today feel, 1 to 10?&rdquo;</p>
-        <div role="group" aria-labelledby="close-rating" className="flex flex-wrap gap-2">
-          {RATINGS.map((n) => (
-            <button
-              key={n}
-              type="button"
-              aria-pressed={rating === n}
-              aria-label={`Rating ${n}`}
-              onClick={() => pickRating(n)}
-              className={clsx(
-                "flex size-7 items-center justify-center rounded-full border text-[0.75rem] tabular-nums transition-colors",
-                rating === n ? "border-accent bg-accent text-accent-ink" : "border-line hover:border-accent",
-              )}
-            >
-              {n}
+      {closedAt && (
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 py-2">
+          {/* Mounted once per closed day, so the stamp drops in only when the day gets sealed. */}
+          <div role="status" className="seal text-center">
+            <span className="head text-[12px] leading-tight">{theme.sealedStamp}</span>
+            <span className="head text-[26px] leading-none">
+              <span className="sr-only">, rating </span>
+              {rating ?? "—"}
+              {rating !== null && <span className="text-[13px]"> / 10</span>}
+            </span>
+          </div>
+          {!open && (
+            <button type="button" onClick={reopen} className="btn ghost">
+              {REOPEN_DAY_LABEL}
             </button>
-          ))}
+          )}
         </div>
-      </div>
+      )}
+
+      {open && (
+        <div className="unfold flex flex-col gap-5">
+          {FIELDS.map(({ field, title, subtitle: sub }) => (
+            <div key={field}>
+              <label htmlFor={`close-${field}`} className={heading}>
+                {title}
+              </label>
+              <p className={subtitle}>&ldquo;{sub}&rdquo;</p>
+              <textarea
+                id={`close-${field}`}
+                value={text[field]}
+                onChange={(e) => changeText(field, e.target.value)}
+                onBlur={flush}
+                rows={2}
+                className="field min-h-14"
+              />
+            </div>
+          ))}
+
+          <div>
+            <p id="close-rating" className={heading}>
+              Rating
+            </p>
+            <p className={subtitle}>&ldquo;How did today feel, 1 to 10?&rdquo;</p>
+            <div role="group" aria-labelledby="close-rating" className="flex flex-wrap gap-2">
+              {RATINGS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={rating === n}
+                  aria-label={`Rating ${n}`}
+                  onClick={() => pickRating(n)}
+                  className="rate tabular-nums"
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

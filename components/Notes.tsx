@@ -1,4 +1,8 @@
-/** Free notes at the bottom of the day page. */
+"use client";
+
+import { useTheme } from "./ThemeProvider";
+
+/** Free notes at the bottom of the day page; title from the theme registry. */
 export function Notes({
   value,
   onChange,
@@ -8,19 +12,20 @@ export function Notes({
   onChange?: (value: string) => void;
   onBlur?: () => void;
 }) {
+  const { theme } = useTheme();
   return (
-    <div className="border-t border-line pt-5">
-      <h3 className="mb-1 text-[0.8rem] font-light uppercase tracking-[1px]">Notes</h3>
-      <p className="mb-4 text-xs italic text-muted">
-        &ldquo;Extra space for ideas, future tasks, inspiration, etc.&rdquo;
-      </p>
+    <div>
+      <h3 className="head text-base leading-snug">
+        <label htmlFor="day-notes">{theme.notesTitle}</label>
+      </h3>
+      <p className="sub mb-2">&ldquo;Extra space for ideas, future tasks, inspiration, etc.&rdquo;</p>
       <textarea
-        aria-label="Notes"
-        placeholder="Notes…"
+        id="day-notes"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={() => onBlur?.()}
-        className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent"
+        rows={3}
+        className="field min-h-20"
       />
     </div>
   );

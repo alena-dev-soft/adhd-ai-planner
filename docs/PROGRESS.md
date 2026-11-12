@@ -589,3 +589,28 @@ What was done:
     - Neither 1440px nor 390px scrolls horizontally, and day controls wrap under the title at 390px. No page errors.
 
 Next: Quote / Notes / CloseDay restyle (themed notes title, `.field`, `.unfold`, `.rate`, `.seal` + "Reopen the day"), Weekly Review and Login restyle.
+
+## UI redesign step 6 — Quote, notes, close-the-day panel, rating and sealed stamp
+
+What was done (UI only; Server Actions, data flow and `lib/domain` unchanged):
+- **`components/Quote.tsx`**: body font italic 22px, centred; author below in uppercase 12px `text-muted` ("— Author"). The old hairline borders are gone (the page's 22px gap separates blocks). The quote pool and the per-day selection (`loadPlanner` → `day.quote`) are untouched.
+- **`components/Notes.tsx`** (client now, reads `useTheme()`): `.head` heading containing a `<label for="day-notes">` with `theme.notesTitle` (Scroll of notes / Observations / Field notes), the shared `.sub` subtitle, and `<textarea id="day-notes" class="field">`. The save logic (800ms debounce + flush on blur in `Planner`) is unchanged.
+- **`components/CloseDay.tsx`** (Q1 flow as approved):
+  - Not closed: one `.btn.solid` with `theme.closeDayButton` (Seal the day / Chart the sky / Rest the grove). Clicking it opens the panel and calls `saveCloseDay({ close: true })` as before, and focus moves to Highlight.
+  - Open: the fields are wrapped in `.unfold`, so they unfold on mount. Highlight / What worked / What didn't are `.field` textareas with `.head` labels and `.sub` subtitles. Rating = ten `.rate` buttons (44px) with `aria-pressed`; tapping the selected one still clears it.
+  - When `closedAt` is set, a `.seal` (`role="status"`) shows `theme.sealedStamp` (Day sealed / Sky charted / Grove at rest) plus the rating ("7 / 10", or "—"). It is mounted once, so it drops in when the server confirms the close. Theme or rating changes update it without replaying.
+  - A day that loads already sealed shows the stamp with the fields folded, plus a **"Reopen the day"** `.btn.ghost`. That button unfolds the fields again and focuses Highlight. It is UI state only: `closed_at` stays, because no reopen action exists (see OPEN_QUESTIONS).
+  - The panel heading is `theme.closeDayButton`, and the old "closed" label is replaced by the stamp.
+- **`lib/theme.ts`**: new shared `REOPEN_DAY_LABEL`. The field titles and subtitles stay as constants in `CloseDay` because they are not themed.
+- Verified:
+  - lint is clean, and `npm test` passes 96/96.
+  - Playwright on a temporary public page with fake data, with `saveCloseDay` stubbed to succeed. Both were removed and not committed.
+    - Quote computed style: 22px, italic, centred.
+    - "Seal the day" is `btn solid`. Clicking it gives `.unfold`, and the stamp drops in.
+    - Picking 8 makes the stamp show "8 / 10".
+    - Switching to Star Chart / Grove changes the heading, stamp and notes title.
+    - At 390px, a pre-sealed day shows stamp + Reopen. After Reopen, the fields unfold, Highlight has focus, and there is no horizontal scroll.
+    - With reduced motion, `.seal` and `.unfold` have `animation: none`.
+    - No page errors.
+
+Next: Weekly Review and Login restyle, then final check (1440/390, reduced motion) and PR.

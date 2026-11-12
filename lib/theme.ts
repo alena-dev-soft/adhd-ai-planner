@@ -114,3 +114,6 @@ export function slotGroup(theme: Theme, kind: PageKind, slot: number): SlotGroup
 export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
 )});if(${JSON.stringify(THEME_KEYS)}.indexOf(t)>-1)document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
+
+/** Shared (unthemed) label of the ghost button that unfolds a sealed day again. */
+export const REOPEN_DAY_LABEL = "Reopen the day";
