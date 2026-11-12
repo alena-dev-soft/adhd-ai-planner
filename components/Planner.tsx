@@ -16,7 +16,7 @@ import { Notes } from "./Notes";
 import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
 import { DayTaskRow, WeekTaskRow } from "./TaskRow";
-import { TopBar } from "./TopBar";
+import { Header, WeekNav } from "./TopBar";
 import { useTheme } from "./ThemeProvider";
 import { slotGroups } from "@/lib/theme";
 import { useSaver, type SaveStatus } from "@/lib/use-saver";
@@ -151,44 +151,51 @@ export function Planner({
   };
   useEffect(() => flushNotes, [flushNotes]);
 
+  const donePomodoros = dayTasks.reduce((sum, t) => sum + t.completedPomodoros, 0);
+
   return (
-    <main className="mx-auto max-w-[1400px] p-3 min-[900px]:p-5">
-      <TopBar
+    <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8">
+      <Header
+        weekStart={weekStart}
+        selectedDate={selectedDate}
+        today={today}
+        done={donePomodoros}
+        target={plannedPomodoros}
+        status={
+          <span role="status" className={clsx("text-sm", status === "error" ? "text-ink" : "text-muted")}>
+            {STATUS_TEXT[status]}
+          </span>
+        }
+      />
+      <WeekNav
         weekStart={weekStart}
         dates={dates}
         selectedDate={selectedDate}
         today={today}
         prevWeekHref={prevWeekHref}
         nextWeekHref={nextWeekHref}
-        status={
-          <span
-            role="status"
-            className={clsx("min-w-16 text-right text-xs", status === "error" ? "text-ink" : "text-muted")}
-          >
-            {STATUS_TEXT[status]}
-          </span>
-        }
       />
 
-      <div className="grid grid-cols-1 overflow-hidden bg-page shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
-        <Page className="border-b-2 border-line min-[900px]:border-r-2 min-[900px]:border-b-0">
-          <div className="flex items-center justify-between">
+      {/* 460 + 560 + 24 gap: side by side from ~1092px viewport, stacked (week first) below. */}
+      <div className="flex flex-wrap items-start gap-6">
+        <Page label="Week" className="flex-[1_1_460px]">
+          <div className="flex items-center justify-between gap-4">
             <PageTitle>{theme.weekPageTitle}</PageTitle>
             <button
               type="button"
               aria-expanded={weekOpen}
               aria-controls="week-tasks"
               onClick={() => setWeekOpen((o) => !o)}
-              className="text-xs uppercase tracking-[1px] text-muted hover:text-ink min-[900px]:hidden"
+              className="btn ghost shrink-0 whitespace-nowrap px-3! min-[1092px]:hidden"
             >
               {weekOpen ? "Hide ▴" : "Show ▾"}
             </button>
           </div>
-          <p className="mb-8 text-[0.85rem] text-muted">
-            Week of {format(parseISO(weekStart), "dd / MM / yyyy")}
-          </p>
 
-          <div id="week-tasks" className={clsx(!weekOpen && "hidden", "min-[900px]:block")}>
+          <div
+            id="week-tasks"
+            className={clsx(!weekOpen && "hidden", "flex-col gap-[22px] min-[1092px]:flex", weekOpen && "flex")}
+          >
             {slotGroups(theme, "week").map((s) => (
               <Section key={s.slots[0]} title={s.label} subtitle={s.subtitle}>
                 {s.slots.map((slot) => {
@@ -216,13 +223,10 @@ export function Planner({
           </div>
         </Page>
 
-        <Page>
-          <div className="flex items-start justify-between">
-            <PageTitle>Daily</PageTitle>
-            <div className="text-right text-[0.85rem] text-muted">
-              <p>Date {format(day, "dd / MM / yyyy")}</p>
-              <p className="text-xs uppercase tracking-[1px]">{format(day, "EEEE")}</p>
-            </div>
+        <Page label="Day" className="flex-[1_1_560px]">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="head text-xl leading-snug">{format(day, "d MMMM yyyy")}</h2>
+            <p className="head text-sm text-muted">{format(day, "EEEE")}</p>
           </div>
 
           {dayData.quote && <Quote text={dayData.quote.text} author={dayData.quote.author} />}
@@ -256,7 +260,7 @@ export function Planner({
             </Section>
           ))}
 
-          <p aria-live="polite" className={clsx("text-xs italic text-ink", load !== "yes" && "-mt-6 mb-8")}>
+          <p aria-live="polite" className="-mt-2 text-sm italic text-ink empty:-mt-[22px]">
             {load === "warning" && `${plannedPomodoros} pomodoros planned — the shift is getting tight.`}
             {load === "no" && `${plannedPomodoros} pomodoros planned — more than one shift holds (15).`}
           </p>

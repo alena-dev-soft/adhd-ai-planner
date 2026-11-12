@@ -100,7 +100,7 @@ export function CloseDay({
 
   if (!open) {
     return (
-      <div className="mt-8 border-t border-line pt-5">
+      <div className="border-t border-line pt-5">
         <button
           type="button"
           onClick={closeDay}
@@ -113,7 +113,7 @@ export function CloseDay({
   }
 
   return (
-    <section aria-labelledby="close-day-title" className="mt-8 border-t border-line pt-5">
+    <section aria-labelledby="close-day-title" className="border-t border-line pt-5">
       <div className="mb-5 flex items-baseline justify-between">
         <h3 id="close-day-title" className={heading}>
           Close the day

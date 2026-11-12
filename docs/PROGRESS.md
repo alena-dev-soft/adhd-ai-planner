@@ -545,3 +545,17 @@ What was done:
 - Note: `npx tsc --noEmit` reports `LayoutProps` missing until `next dev`/`next build` generates the route types. This is not new in this step.
 
 Next: the component restyle. This covers DESIGN §3–4: header with "Planner" + subline + switcher, pills, `.page` layout, rows, `Bubble.tsx` using `theme.bubbleShape`, and Notes/CloseDay labels from the registry. Then the animation triggers.
+
+## UI redesign step 4 — Header, week navigation, day pills and page layout
+
+What was done:
+- **`components/TopBar.tsx`** now exports `Header` and `WeekNav` (client components; `TopBar` is gone).
+  - `Header`: "Planner" (not themed; `font-head`, 26px, `tracking-[3px]`) + subline `{done} / {target} {unit} gathered today`. done = sum of `completedPomodoros`, target = `totalTarget` of the selected day's tasks; unit = `theme.pomodoroUnit`. When the selected day isn't today the subline says "gathered on Wed 11" (Q3). The save status sits next to the subline (Q6). Right side: `ThemeSwitcher`, Review link and Sign out as `.btn.ghost`.
+  - `WeekNav`: ‹ / › as round `.pill` links, "Week of 9 November" in `.head`, Mon–Sun `.pill` links ("Mon 9"). Selected day = `aria-current="date"` (Q2, links can't be `aria-pressed`); `globals.css` styles `.pill[aria-current="date"]` like `.pill[aria-pressed="true"]`, and today (not selected) gets an accent underline via `data-today`. Below 600px the pills are a 7-column grid with weekday over date so they fit in one row at 390px. Navigation logic (hrefs from `page.tsx`) unchanged.
+- **Layout (`Planner.tsx`)**: `<main>` max-w 1280px, `px-6 py-8`, gap 24px. Pages in `flex flex-wrap gap-6`: week `flex-[1_1_460px]`, day `flex-[1_1_560px]` → side by side from ~1092px viewport, stacked (week first) below. The week Show/Hide toggle (Q5) is now `.btn.ghost` and shows below 1092px (the stacking point).
+- **`components/Page.tsx`**: `Page` = `.page` + `flex flex-col gap-[22px]`, padding 32px (20px below 600px so rows have room on phones — small deviation from DESIGN's 32px). `PageTitle` and `Section` titles use `.head`, subtitles `.sub`, all from `lib/theme.ts`.
+- **Day page order**: date ("11 November 2026", `.head`) left + weekday (uppercase `.head`, muted) right → quote → 3 groups → overload line (`empty:-mt-[22px]` cancels the gap when empty, still an aria-live region) → notes → close-the-day. The old "Daily" title and the "Week of dd / MM / yyyy" line on the week page are removed (the nav row shows the week). Outer margins removed from Quote / Notes / CloseDay so the 22px flex gap controls spacing; their contents are restyled in later steps.
+- **Tailwind vs themes.css**: themes.css is unlayered, so it beats Tailwind's layered utilities. Where a utility must override a themes.css property (e.g. `.pill`/`.btn` padding or font-size) it uses the v4 important suffix (`px-3!`, `text-[13px]!`).
+- Verified: lint clean, `npm test` 96/96. Playwright on a temporary unauthenticated page with fake data (not committed): at 1440px the pages sit side by side (554px + 654px, gap 24px), no horizontal scroll; at 390px they stack, week first, pills in one row, no horizontal scroll; switching to Star Chart / Grove changes the unit, page title and section names; no console errors.
+
+Next: TaskRow / Bubble / check restyle (`.row`, `Bubble.tsx`), Quote / Notes / CloseDay restyle (themed notes title, `.unfold`, `.seal`), then the animation triggers.

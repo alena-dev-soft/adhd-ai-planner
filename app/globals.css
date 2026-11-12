@@ -41,6 +41,20 @@ body {
   outline-offset: 2px;
 }
 
+/* Day pills are links (URL state): the selected day is aria-current="date" (Q2),
+   styled like .pill[aria-pressed="true"]. Today gets a subtle underline. */
+.pill[aria-current="date"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.pill[data-today]:not([aria-current]) {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+a.pill, a.btn { text-decoration: none; }
+
 /* ADH Planner — fantasy themes + micro-animations
    Drop into app/globals.css (after Tailwind directives).
    Theme is set on <html data-theme="grimoire|astral|forest">. */

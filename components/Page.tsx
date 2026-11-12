@@ -1,26 +1,35 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
 
-/** One sheet of the planner (left = week, right = day). */
-export function Page({ className, children }: { className?: string; children: ReactNode }) {
+/**
+ * One planner page (`.page` from themes.css). Layout only via Tailwind:
+ * padding 32px (20px on phones), children stacked with a 22px gap.
+ */
+export function Page({
+  className,
+  label,
+  children,
+}: {
+  className?: string;
+  label?: string;
+  children: ReactNode;
+}) {
   return (
     <section
-      className={clsx(
-        "@container px-5 py-10 min-[900px]:min-h-[900px] min-[900px]:px-10 min-[900px]:py-14",
-        className,
-      )}
+      aria-label={label}
+      className={clsx("page @container flex min-w-0 flex-col gap-[22px] p-5 min-[600px]:p-8", className)}
     >
       {children}
     </section>
   );
 }
 
-/** Page heading: small, uppercase, light, muted (prototype `.page-title`). */
+/** Page heading in the theme's heading font. */
 export function PageTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-xs font-light uppercase tracking-[1px] text-muted">{children}</h2>;
+  return <h2 className="head text-xl leading-snug">{children}</h2>;
 }
 
-/** A titled block of tasks with the paper-planner quoted subtitle. */
+/** A titled block of tasks: `.head` name + `.sub` subtitle (both from lib/theme.ts). */
 export function Section({
   title,
   subtitle,
@@ -31,9 +40,9 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <div className="mb-10">
-      <h3 className="mb-1 text-[0.8rem] font-light uppercase tracking-[1px] text-ink">{title}</h3>
-      <p className="mb-4 text-xs italic text-muted">&ldquo;{subtitle}&rdquo;</p>
+    <div>
+      <h3 className="head text-base leading-snug">{title}</h3>
+      <p className="sub mb-2">&ldquo;{subtitle}&rdquo;</p>
       {children}
     </div>
   );

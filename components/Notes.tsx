@@ -9,7 +9,7 @@ export function Notes({
   onBlur?: () => void;
 }) {
   return (
-    <div className="mt-8 border-t border-line pt-5">
+    <div className="border-t border-line pt-5">
       <h3 className="mb-1 text-[0.8rem] font-light uppercase tracking-[1px]">Notes</h3>
       <p className="mb-4 text-xs italic text-muted">
         &ldquo;Extra space for ideas, future tasks, inspiration, etc.&rdquo;
