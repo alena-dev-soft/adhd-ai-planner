@@ -6,14 +6,14 @@ import { Bubbles } from "./Bubbles";
 export type { Feasibility };
 
 const FEASIBILITY_MARK: Record<Feasibility, { mark: string; className: string; label: string }> = {
-  yes: { mark: "✓", className: "text-sage-text", label: "Feasible" },
-  warning: { mark: "⚠", className: "text-warm-text", label: "Tight" },
-  no: { mark: "✕", className: "text-warm-text", label: "Too much" },
+  yes: { mark: "✓", className: "text-accent", label: "Feasible" },
+  warning: { mark: "⚠", className: "text-ink", label: "Tight" },
+  no: { mark: "✕", className: "text-ink", label: "Too much" },
 };
 
 const titleInput =
-  "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-sage-text";
-const checkbox = "size-[18px] shrink-0 cursor-pointer accent-sage";
+  "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-accent-text";
+const checkbox = "size-[18px] shrink-0 cursor-pointer accent-accent";
 
 /**
  * Title input keys: Enter moves focus to the next slot (or leaves the last one),
@@ -57,10 +57,10 @@ function rowKeys(
   }
 }
 
-const rowFocus = "rounded-sm outline-offset-4 focus:outline-2 focus:outline-sage-text";
+const rowFocus = "rounded-sm outline-offset-4 focus:outline-2 focus:outline-glow";
 
 function SlotNumber({ slot }: { slot: number }) {
-  return <span className="min-w-6 text-[0.9rem] tabular-nums text-muted-text">{slot}.</span>;
+  return <span className="min-w-6 text-[0.9rem] tabular-nums text-muted">{slot}.</span>;
 }
 
 /** Week page row: number · underline input · checkbox. */
@@ -103,7 +103,7 @@ export function WeekTaskRow({
         onChange={(e) => onTitleChange?.(e.target.value)}
         onKeyDown={(e) => titleKeys(e, nextInputId)}
         onBlur={() => onTitleCommit?.()}
-        className={clsx(titleInput, isDone && "text-muted-text line-through")}
+        className={clsx(titleInput, isDone && "text-muted line-through")}
       />
       <input
         type="checkbox"
@@ -164,7 +164,7 @@ function TargetBox({
         title="Target pomodoros"
         data-native-keys
         onClick={() => setDraft(value?.toString() ?? "")}
-        className={clsx(box, "cursor-text hover:border-sage")}
+        className={clsx(box, "cursor-text hover:border-accent")}
       >
         {value ?? ""}
       </button>
@@ -196,7 +196,7 @@ function TargetBox({
         }
       }}
       onBlur={commit}
-      className={clsx(box, "bg-transparent text-center outline-none focus:border-sage-text")}
+      className={clsx(box, "bg-transparent text-center outline-none focus:border-accent-text")}
     />
   );
 }
@@ -258,7 +258,7 @@ export function DayTaskRow({
           onChange={(e) => onTitleChange?.(e.target.value)}
           onKeyDown={(e) => titleKeys(e, nextInputId)}
           onBlur={() => onTitleCommit?.()}
-          className={clsx(titleInput, isDone && "text-muted-text line-through")}
+          className={clsx(titleInput, isDone && "text-muted line-through")}
         />
       </div>
       <div className="ml-auto flex items-center gap-2">
@@ -282,7 +282,7 @@ export function DayTaskRow({
         </span>
       </div>
       {feasibilityNote && title.trim() && (
-        <p className="w-full pl-9 text-xs italic leading-snug text-muted-text">{feasibilityNote}</p>
+        <p className="w-full pl-9 text-xs italic leading-snug text-muted">{feasibilityNote}</p>
       )}
     </div>
   );

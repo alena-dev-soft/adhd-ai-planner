@@ -5,7 +5,7 @@ import { plannerHref } from "@/lib/domain/selection";
 
 const sectionTitle = "mb-2 text-[0.75rem] font-light uppercase tracking-[1px]";
 
-/** Done (sage ✓) or not done (muted ✗) task list; nothing when empty. */
+/** Done (accent ✓) or not done (muted ✗) task list; nothing when empty. */
 export function TaskList({ title, tasks, done }: { title: string; tasks: ReviewTask[]; done: boolean }) {
   if (tasks.length === 0) return null;
   return (
@@ -13,8 +13,8 @@ export function TaskList({ title, tasks, done }: { title: string; tasks: ReviewT
       <h3 className={sectionTitle}>{title}</h3>
       <ul className="text-[0.9rem] leading-relaxed">
         {tasks.map((t) => (
-          <li key={t.slot} className={done ? "text-ink" : "text-muted-text"}>
-            <span aria-hidden className={done ? "text-sage-text" : undefined}>
+          <li key={t.slot} className={done ? "text-ink" : "text-muted"}>
+            <span aria-hidden className={done ? "text-accent" : undefined}>
               {done ? "✓" : "✗"}
             </span>{" "}
             <span className="sr-only">{done ? "Done: " : "Not done: "}</span>
@@ -30,26 +30,26 @@ export function TaskList({ title, tasks, done }: { title: string; tasks: ReviewT
 export function ReviewCard({ day }: { day: DayReview }) {
   const date = parseISO(day.date);
   return (
-    <article className="border border-line bg-paper p-5">
+    <article className="border border-line bg-page p-5">
       <header className="flex items-baseline justify-between gap-4">
         <h2 className="text-[0.9rem]">
-          <Link href={plannerHref(day.date)} className="hover:underline decoration-skyblue underline-offset-4">
+          <Link href={plannerHref(day.date)} className="hover:underline decoration-accent underline-offset-4">
             {format(date, "EEEE, MMM d")}
           </Link>
         </h2>
         {day.rating !== null && (
           <span className="text-[0.9rem] tabular-nums">
             {day.rating}
-            <span className="text-muted-text"> / 10</span>
+            <span className="text-muted"> / 10</span>
           </span>
         )}
       </header>
 
       {!day.hasData ? (
-        <p className="mt-2 text-xs italic text-muted-text">Nothing written down.</p>
+        <p className="mt-2 text-xs italic text-muted">Nothing written down.</p>
       ) : (
         <>
-          <p className="mt-2 text-xs text-muted-text">
+          <p className="mt-2 text-xs text-muted">
             {day.done.length} done · {day.notDone.length} not done · {day.pomodorosDone}
             {day.pomodorosTarget > 0 && ` of ${day.pomodorosTarget}`} pomodoros
             {!day.closed && " · not closed"}

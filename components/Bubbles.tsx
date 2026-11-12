@@ -24,12 +24,12 @@ export function Bubbles({
             onClick={() => onClick?.(n)}
             className={clsx(
               "size-4 rounded-full border transition-colors",
-              n <= filled ? "border-sage bg-sage" : "border-line hover:bg-[#f0ede8]",
+              n <= filled ? "border-accent bg-accent" : "border-line hover:bg-line",
             )}
           />
         );
       })}
-      <span className="w-5 text-[0.7rem] text-muted-text">{overflow}</span>
+      <span className="w-5 text-[0.7rem] text-muted">{overflow}</span>
     </div>
   );
 }

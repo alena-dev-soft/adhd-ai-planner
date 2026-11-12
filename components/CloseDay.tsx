@@ -17,7 +17,7 @@ const FIELDS: { field: TextField; title: string; subtitle: string }[] = [
 ];
 
 const heading = "mb-1 text-[0.8rem] font-light uppercase tracking-[1px]";
-const subtitle = "mb-3 text-xs italic text-muted-text";
+const subtitle = "mb-3 text-xs italic text-muted";
 
 /**
  * "Close the day": an inline panel at the bottom of the day page (never a
@@ -104,7 +104,7 @@ export function CloseDay({
         <button
           type="button"
           onClick={closeDay}
-          className="rounded-[3px] border border-sage px-3 py-1.5 text-xs uppercase tracking-[1px] text-ink hover:bg-sage/10"
+          className="rounded-[3px] border border-accent px-3 py-1.5 text-xs uppercase tracking-[1px] text-ink hover:bg-accent/10"
         >
           Close the day
         </button>
@@ -118,7 +118,7 @@ export function CloseDay({
         <h3 id="close-day-title" className={heading}>
           Close the day
         </h3>
-        {closedAt && <span className="text-xs italic text-muted-text">closed</span>}
+        {closedAt && <span className="text-xs italic text-muted">closed</span>}
       </div>
 
       {FIELDS.map(({ field, title, subtitle: sub }) => (
@@ -133,7 +133,7 @@ export function CloseDay({
             onChange={(e) => changeText(field, e.target.value)}
             onBlur={flush}
             rows={2}
-            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-sage-text"
+            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent-text"
           />
         </div>
       ))}
@@ -153,7 +153,7 @@ export function CloseDay({
               onClick={() => pickRating(n)}
               className={clsx(
                 "flex size-7 items-center justify-center rounded-full border text-[0.75rem] tabular-nums transition-colors",
-                rating === n ? "border-sage bg-sage text-ink" : "border-line hover:border-sage",
+                rating === n ? "border-accent bg-accent text-accent-ink" : "border-line hover:border-accent",
               )}
             >
               {n}

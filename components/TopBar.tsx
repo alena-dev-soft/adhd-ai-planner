@@ -23,7 +23,7 @@ export function TopBar({
   nextWeekHref: string;
   status?: ReactNode;
 }) {
-  const arrow = "px-2 text-lg leading-none text-muted-text hover:text-ink";
+  const arrow = "px-2 text-lg leading-none text-muted hover:text-ink";
   return (
     <nav className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm">
       <div className="flex items-center gap-1">
@@ -50,8 +50,8 @@ export function TopBar({
               title={date === today ? "Today" : undefined}
               className={clsx(
                 "flex min-w-10 flex-col items-center rounded-[3px] border px-2 py-0.5 text-xs leading-tight",
-                selected ? "border-skyblue bg-skyblue text-ink" : "border-line hover:border-skyblue",
-                date === today && !selected && "underline decoration-skyblue underline-offset-2",
+                selected ? "border-accent bg-accent text-accent-ink" : "border-line hover:border-accent",
+                date === today && !selected && "underline decoration-accent underline-offset-2",
               )}
             >
               <span>{format(d, "EEE")}</span>
@@ -65,12 +65,12 @@ export function TopBar({
         {status}
         <Link
           href={`/review?week=${weekStart}`}
-          className="text-xs uppercase tracking-[1px] underline decoration-skyblue underline-offset-4"
+          className="text-xs uppercase tracking-[1px] underline decoration-accent underline-offset-4"
         >
           Review
         </Link>
         <form action={signOut}>
-          <button type="submit" className="text-xs text-muted-text hover:text-ink">
+          <button type="submit" className="text-xs text-muted hover:text-ink">
             sign out
           </button>
         </form>

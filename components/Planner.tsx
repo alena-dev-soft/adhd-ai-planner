@@ -172,14 +172,14 @@ export function Planner({
         status={
           <span
             role="status"
-            className={clsx("min-w-16 text-right text-xs", status === "error" ? "text-warm-text" : "text-muted-text")}
+            className={clsx("min-w-16 text-right text-xs", status === "error" ? "text-ink" : "text-muted")}
           >
             {STATUS_TEXT[status]}
           </span>
         }
       />
 
-      <div className="grid grid-cols-1 overflow-hidden bg-paper shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
+      <div className="grid grid-cols-1 overflow-hidden bg-page shadow-[0_4px_20px_rgba(0,0,0,0.06)] min-[900px]:grid-cols-2">
         <Page className="border-b-2 border-line min-[900px]:border-r-2 min-[900px]:border-b-0">
           <div className="flex items-center justify-between">
             <PageTitle>Weekly Planning</PageTitle>
@@ -188,12 +188,12 @@ export function Planner({
               aria-expanded={weekOpen}
               aria-controls="week-tasks"
               onClick={() => setWeekOpen((o) => !o)}
-              className="text-xs uppercase tracking-[1px] text-muted-text hover:text-ink min-[900px]:hidden"
+              className="text-xs uppercase tracking-[1px] text-muted hover:text-ink min-[900px]:hidden"
             >
               {weekOpen ? "Hide ▴" : "Show ▾"}
             </button>
           </div>
-          <p className="mb-8 text-[0.85rem] text-muted-text">
+          <p className="mb-8 text-[0.85rem] text-muted">
             Week of {format(parseISO(weekStart), "dd / MM / yyyy")}
           </p>
 
@@ -228,7 +228,7 @@ export function Planner({
         <Page>
           <div className="flex items-start justify-between">
             <PageTitle>Daily</PageTitle>
-            <div className="text-right text-[0.85rem] text-muted-text">
+            <div className="text-right text-[0.85rem] text-muted">
               <p>Date {format(day, "dd / MM / yyyy")}</p>
               <p className="text-xs uppercase tracking-[1px]">{format(day, "EEEE")}</p>
             </div>
@@ -265,7 +265,7 @@ export function Planner({
             </Section>
           ))}
 
-          <p aria-live="polite" className={clsx("text-xs italic text-warm-text", load !== "yes" && "-mt-6 mb-8")}>
+          <p aria-live="polite" className={clsx("text-xs italic text-ink", load !== "yes" && "-mt-6 mb-8")}>
             {load === "warning" && `${plannedPomodoros} pomodoros planned — the shift is getting tight.`}
             {load === "no" && `${plannedPomodoros} pomodoros planned — more than one shift holds (15).`}
           </p>
