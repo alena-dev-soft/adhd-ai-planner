@@ -430,3 +430,66 @@ Next: phase 7 (deploy) — only when asked.
 - Open:
   - A real inbox magic-link email wasn't tested by the agent (the user's choice).
   - Phase 7 (deploy) only when asked. Remember to `db push` the new migration to the cloud project too. It's already applied on the current hosted project.
+
+## UI redesign step 1 — Design files + UI audit and mapping (fantasy themes)
+
+What was done:
+- Added `docs/ui/DESIGN.md` (exact copy of the attached design), `docs/ui/themes.css` (exact CSS from the project instruction) and `docs/ui/UI_AGENT_PROMPT.md` (the task prompt for the following steps).
+- Read CLAUDE.md and the UI files only: `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `app/review/page.tsx`, `app/login/page.tsx` (classes only), `components/*`. No code changed in this step.
+
+### Facts that shape the work
+- **Tailwind v4, there is no `tailwind.config.*`.** Tokens live in `app/globals.css` `@theme`. The prompt's `tailwind.config` mapping will therefore be done in `@theme` instead (e.g. `--color-page: var(--page)`, `--color-accent: var(--accent)`, `--font-head: …`, `--radius-page: var(--radius)`), giving the same utilities (`bg-page`, `text-accent`, `font-head`, `rounded-page`).
+  - Name clashes to watch: `@theme` already defines `--color-ink`, `--color-muted`, `--color-line`, which become `var(--ink)` etc. `--font-head`/`--font-body` are set by themes.css per theme, so the Tailwind font tokens must be named differently in `@theme` or reference them without redefining them (decide in step 2; no self-reference loops).
+- **Bubble click logic:** `components/Planner.tsx` → `onBubbleClick` on `DayTaskRow` calls `clickBubble()` (`lib/domain/bubbles.ts`) then `saveDayTask`. The same handler is reached from the row keys 1–5 (`rowKeys` in `components/TaskRow.tsx`). `components/Bubbles.tsx` only renders and calls `onClick(n)`.
+- **Task-done logic:** `components/Planner.tsx` `onToggleDone` for week rows (`saveWeekTask`) and day rows (`saveDayTask`). Reached from the native checkbox `onChange` and from Space on a focused row (`rowKeys`).
+- **Close-day logic:** `components/CloseDay.tsx`. Clicking "Close the day" opens the inline panel **and** sets `closed_at` right away (`saveCloseDay({ close: true })`, set once). Text fields debounce 800ms, rating saves immediately, tapping the selected rating clears it. There is no "unclose".
+- **Animation hooks (step 4 of the prompt)** fit in `Planner.tsx`: `lastPop` set inside `onBubbleClick` when the new count > old count; `lastSpark` set inside `onToggleDone` when `isDone` becomes true. Both handlers are user-triggered only (initial state comes from props), so sparks never fire on load.
+
+### Old colour classes (all to be replaced)
+`dark` is not used anywhere. Also replaced: the text-only AA tokens `muted-text`, `sage-text`, `warm-text` (phase 6) and `paper`.
+- `app/globals.css`: `@theme` tokens cream/paper/sage/skyblue/warm/muted(-text)/sage-text/warm-text/line, `body` cream background + Georgia + line-height 1.8, `::placeholder` muted-text, `:focus-visible` sage-text outline.
+- `app/layout.tsx:12` `bg-cream font-serif text-ink`.
+- `app/login/page.tsx:13` `bg-paper` + shadow, `:33` `focus:border-sage-text`, `:39` `decoration-sage`, `:44` `text-warm-text`.
+- `app/review/page.tsx:49` `decoration-skyblue`, `:55` `bg-paper` + shadow; many `text-muted-text`.
+- `components/Bubbles.tsx:27` `border-sage bg-sage`, `hover:bg-[#f0ede8]`.
+- `components/CloseDay.tsx:107` `border-sage hover:bg-sage/10`, `:136` `focus:border-sage-text`, `:156` `border-sage bg-sage hover:border-sage`.
+- `components/Notes.tsx:23` `focus:border-sage-text`.
+- `components/Planner.tsx:175` `text-warm-text` (save error), `:182` `bg-paper` + shadow, `:268` `text-warm-text` (overload line).
+- `components/ReviewCard.tsx:17` `text-sage-text`, `:33` `bg-paper`, `:36` `decoration-skyblue`.
+- `components/TaskRow.tsx:9–11` feasibility marks `text-sage-text` / `text-warm-text`, `:15` `focus:border-sage-text`, `:16` `accent-sage` (checkbox), `:60` `focus:outline-sage-text` (row focus), `:167` `hover:border-sage`, `:199` `focus:border-sage-text`.
+- `components/TopBar.tsx:53` `border-skyblue bg-skyblue hover:border-skyblue`, `:54` + `:68` `decoration-skyblue`.
+
+### Mapping: existing component → what changes
+| Area | Today | Change |
+|---|---|---|
+| **Header** | None. `TopBar` is a single nav row (week arrows, day selector, saved status, Review link, sign out). | New header row in `Planner`: "Planner" (`.head`, 26px, 3px tracking) + subline `{done} / {target} {unit} gathered today` (sum of `completedPomodoros` / `totalTarget()` of the day tasks) + `ThemeSwitcher` (3 `.pill`). |
+| **Week nav + day pills** (`TopBar.tsx`) | `<Link>`s, "Week of dd MMM", day = weekday + date number, selected = skyblue + `aria-current="date"`, today underlined. | "Week of 9 November" (`d MMMM`), arrows and days as `.pill`. Days stay `<Link>` (URL state) — see Q2 for the selected style. |
+| **Pages** (`Planner.tsx`, `Page.tsx`) | One paper sheet, CSS grid 2 cols ≥900px, `Page` sections separated by a border; max-width 1400. | Two separate `.page` cards in a flex-wrap row, gap 24px, week `flex: 1 1 460px`, day `flex: 1 1 560px`, padding 32px, inner gap 22px; max-width 1280, page padding 32px 24px. They stack below ~1000px by flex-basis. |
+| **Week page** | "Weekly Planning" + "Week of dd / MM / yyyy"; section titles from the prototype; collapsible below 900px (Show/Hide). | Themed page title ("Quests of the Week" …) and themed section names + DESIGN subtitles from `lib/theme.ts`. Collapse toggle: see Q5. |
+| **Day page** | "Daily" left, date + weekday right; prototype section titles. | Date (left) + weekday uppercase (right); themed section names + DESIGN subtitles. |
+| **TaskRow (day)** | `div[data-row]` flex-wrap: num · underline `<input>` (line-through when done) · TargetBox (button→input) · Bubbles · CountBox · native checkbox · feasibility mark · note line. | `.row[data-done]`, `.num`, `.title` **wrapper span around the input** (the `::after` strike can't live on an `<input>`), target as `.box` (still click-to-edit), `Bubble`×5, `.box.actual`, `.chk` button (`aria-pressed`, label "Day task N done"), `data-spark`. Keyboard shortcuts, Enter/Escape, ids unchanged. Feasibility: see Q4. |
+| **TaskRow (week)** | num · input · native checkbox. | Same `.row` with `.num`, `.title`, `.chk`. |
+| **Bubbles** (`Bubbles.tsx`) | 5 round buttons, sage fill, `aria-label "Pomodoro N"`, `tabIndex=-1`, "+N" overflow. | New `components/Bubble.tsx` (`.bub[data-shape]`, SVG per theme: orb/star/fly, `aria-pressed`, `data-pop`, key `${index}-${n}`), label "Pomodoro N for {title}". `Bubbles` keeps the loop and "+N". Keep `tabIndex=-1` (focus stays on rows, keys 1–5) — phase 6 decision. |
+| **Check** | native `<input type=checkbox accent-sage>`. | `.chk` `<button aria-pressed>` with the SVG + `.burst`. Space/Enter native on button (keep `data-native-keys`). |
+| **Quote** (`Quote.tsx`) | Georgia italic 0.95rem, small-caps author, top/bottom hairline. | Italic 22px centered (body font), author uppercase 12px muted. |
+| **Notes** (`Notes.tsx`) | "Notes" + subtitle, bordered textarea. | Themed title ("Scroll of notes" …), `.field` textarea; subtitle kept; autosave unchanged. |
+| **Close-the-day** (`CloseDay.tsx`) | Outlined "Close the day" button → panel (always open once closed), "closed" label. | Themed button (`.btn`), panel `.unfold`, textareas `.field`, sealed stamp `.seal` with themed text + rating, "Reopen the day" `.btn.ghost`. Flow: see Q1. |
+| **Rating** | 28px round buttons, sage when selected. | `.rate` (44px), `aria-pressed` kept; deselect-on-retap kept. |
+| **Sealed state** | small italic "closed". | `.seal` stamp (see Q1). |
+| **Weekly Review** (`app/review/page.tsx`, `ReviewCard.tsx`) | paper sheet, sage ✓, skyblue underlines. | `.page` surfaces, `.head` headings, done ✓ in `--accent`, not-done in `--muted`, links underline in accent, `.pill`/arrows for week nav. No animations. |
+| **Login** (`app/login/page.tsx`) | paper card, sage/warm. | Not in DESIGN; restyle with the same tokens (`.page`, `.field`, `.btn`, title "Planner") so it isn't left in the old palette. |
+| **Status / warnings** | "saving… / saved / not saved" (warm on error), overload line in warm, feasibility ⚠/✕ in warm. | No warning colour exists in themes.css — see Q4. |
+| **Global** | Georgia, line-height 1.8, sage focus ring for `[tabindex]` rows and checkboxes. | Fonts via `next/font` + themes.css; themes.css focus ring covers button/a/input/textarea; add the same `--glow` ring for `[data-row]:focus` (rows are `tabIndex=-1` groups). |
+
+### Differences from DESIGN.md §3–4 and proposed approach (needs user confirmation)
+The structure matches well (separate week/day halves, rows num·title·target·bubbles·actual·check, inline close-day). No big restructuring is needed. Points that need a decision:
+1. **Q1 Close-the-day flow.** Today one click opens the panel *and* sets `closed_at`. DESIGN has a button → unfolding panel → sealed stamp + "Reopen the day". **Proposal:** "Seal the day" (themed) still opens the panel with `.unfold` and sets `closed_at` as today (no logic change). While the day is closed, the panel header shows the `.seal` stamp (themed text + rating, or "—"). A "Reopen the day" ghost button collapses… no: since `closed_at` can't be cleared without changing the Server Action, "Reopen the day" only **re-expands the editing panel** when it was collapsed (UI state), and the stamp stays. Concretely: closed day on load → stamp + rating + "Reopen the day"; click → `.unfold` panel with the fields (stamp stays on top). `closed_at` is never cleared.
+2. **Q2 Day pills are links, not toggle buttons.** `aria-pressed` on a link is invalid. **Proposal:** keep `<Link aria-current="date">`, and add one rule in globals.css: `.pill[aria-current="date"]` = same look as `.pill[aria-pressed="true"]`. Pill text: weekday + date number ("Mon 9"), today keeps a subtle underline.
+3. **Q3 Header subline "today".** The page loads only the *selected* day. **Proposal:** count the selected day's tasks; text says "gathered today" when the selected day is today, otherwise "gathered on Mon 9".
+4. **Q4 Warning colour.** themes.css has no warning token, but feasibility ⚠/✕, the overload line and "not saved" use `warm`. **Proposal:** no new colour: ✓ in `--accent`, ⚠/✕ and the overload line in `--ink` italic (symbol carries the meaning), "not saved" in `--ink`. Alternative: add a `--warn` token per theme (design change).
+5. **Q5 Week collapse on mobile.** DESIGN only says "stack, week first". **Proposal:** keep the existing Show/Hide toggle below ~1000px (it keeps the day page near the top on phones), styled as `.btn.ghost`.
+6. **Q6 Header right side.** DESIGN puts only the theme switcher there; the app also has Review, sign out and the saved status. **Proposal:** header right = theme switcher + Review link + sign out (small `.btn.ghost`); saved status as small muted text under/next to the subline.
+7. Tailwind v4: mapping goes into `@theme` in globals.css (no config file) — informational.
+8. Breakpoint changes from 900px (CLAUDE.md) to ~1000px via flex-basis (DESIGN wins for visuals) — informational.
+
+Next step (after confirmation): fonts + tokens (`app/layout.tsx`, `app/globals.css`).
