@@ -493,3 +493,5 @@ The structure matches well (separate week/day halves, rows num·title·target·b
 8. Breakpoint changes from 900px (CLAUDE.md) to ~1000px via flex-basis (DESIGN wins for visuals) — informational.
 
 Next step (after confirmation): fonts + tokens (`app/layout.tsx`, `app/globals.css`).
+
+**Decision (user):** all proposals Q1–Q6 approved as written (no `--warn` token; Tailwind mapping in `@theme`). The next steps implement them without further questions.
