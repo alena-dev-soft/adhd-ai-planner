@@ -68,7 +68,4 @@ Rule from CLAUDE.md: layout/styling → the prototype wins; behavior/data → th
 ## UI redesign (fantasy themes)
 
 - **Store theme preference in Supabase per user — later option.** Today the theme lives only in `localStorage` (`adh-theme`), so it is per browser/device, not per account. Moving it to Supabase needs a schema change (e.g. a `profiles.theme` column) and a way to apply it before paint (cookie or server-rendered `data-theme`).
-
-## UI redesign (fantasy themes)
-
 - **"Reopen the day" is UI-only.** There is no server-side reopen: `saveCloseDay` can set `closed_at` but never clear it. The new "Reopen the day" ghost button only unfolds the close-day fields again for editing. `closed_at` stays set and the seal stays visible. If "reopen" should really un-seal the day (clear `closed_at`, hide the stamp, show the close button again), that needs a new Server Action option (e.g. `reopen: true` → `closed_at = null`). Not built, because this task must not change Server Actions.

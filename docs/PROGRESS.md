@@ -668,3 +668,19 @@ Run the app (Preview, or `npm install && npm run dev`) and sign in.
 5. **Reduce motion:** turn on the OS "Reduce motion" setting (macOS: Accessibility → Display; Windows: Settings → Accessibility → Visual effects → Animation effects off). Repeat steps 1–3. Nothing should animate or cross-fade, but everything should still work.
 
 Human check: the user confirmed all 5 checklist items with no issues.
+
+## UI redesign — final summary (PR)
+
+The fantasy-theme UI change (docs/ui/DESIGN.md + docs/ui/themes.css) is complete and handed over for review.
+- **Fonts:** Cinzel, EB Garamond, Marcellus, Cormorant Garamond, Alegreya, Alegreya SC through `next/font/google`, exposed as `--font-*` variables on `<html>`.
+- **Tokens:** `themes.css` is appended to `app/globals.css` and the old cream/sage palette is removed. The Tailwind v4 theme maps `bg/page/line/ink/muted/accent/glow`, `font-head/body` and `rounded-page` to the CSS variables.
+- **Themes:**
+  - `lib/theme.ts` is the registry for Grimoire, Star Chart and Grove: labels, bubble shape, unit and section names. It is covered by `lib/theme.test.ts`.
+  - `components/ThemeProvider.tsx` stores the theme in localStorage under `adh-theme`.
+  - An inline head script sets the theme before paint, so there is no flash of the wrong theme.
+  - `components/ThemeSwitcher.tsx` shows the three themes as pills.
+- **Components:** TopBar (header, subline, nav, day pills), Page, TaskRow (`.row`, `.box`, `.chk`), the new Bubble/Bubbles, Quote, Notes, CloseDay (`.unfold`, `.rate`, `.seal`, Reopen) and the Weekly Review (new ReviewView and ReviewTaskList) are restyled. Login is restyled too.
+- **Animation triggers:** the client-only states `lastPop` (keyed remount) and `lastSpark` are never saved.
+- **Not changed:** `supabase/`, `lib/domain/` and the Server Actions.
+- **Verification:** lint is clean, tests pass 96/96 (re-run for the PR) and `npm run build` succeeds. Playwright checked 1440/390px, reduced motion and no-flash. The user confirmed the manual checklist.
+- **Open:** storing the theme in Supabase (later option) and making "Reopen the day" un-seal on the server. Both are in `docs/OPEN_QUESTIONS.md`.
