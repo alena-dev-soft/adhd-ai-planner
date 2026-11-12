@@ -20,7 +20,7 @@ export function Notes({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={() => onBlur?.()}
-        className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent-text"
+        className="min-h-20 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent"
       />
     </div>
   );

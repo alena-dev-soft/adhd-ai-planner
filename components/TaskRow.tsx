@@ -12,7 +12,7 @@ const FEASIBILITY_MARK: Record<Feasibility, { mark: string; className: string; l
 };
 
 const titleInput =
-  "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-accent-text";
+  "min-w-0 flex-1 border-0 border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-accent";
 const checkbox = "size-[18px] shrink-0 cursor-pointer accent-accent";
 
 /**
@@ -196,7 +196,7 @@ function TargetBox({
         }
       }}
       onBlur={commit}
-      className={clsx(box, "bg-transparent text-center outline-none focus:border-accent-text")}
+      className={clsx(box, "bg-transparent text-center outline-none focus:border-accent")}
     />
   );
 }

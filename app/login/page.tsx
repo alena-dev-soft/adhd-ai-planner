@@ -30,7 +30,7 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 autoFocus
-                className="border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-accent-text"
+                className="border-b border-line bg-transparent py-1 text-[0.95rem] outline-none focus:border-accent"
               />
             </label>
             <button

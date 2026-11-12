@@ -13,10 +13,17 @@
   --color-accent-ink: var(--accent-ink);
   --color-glow: var(--glow);
 
-  --font-head: var(--font-head);
-  --font-body: var(--font-body);
-
   --radius-page: var(--radius);
+}
+
+/* font-head / font-body utilities. Defined as @utility (not @theme tokens) because
+   themes.css already owns --font-head / --font-body; a @theme token with the same name
+   would emit a self-referencing var. */
+@utility font-head {
+  font-family: var(--font-head);
+}
+@utility font-body {
+  font-family: var(--font-body);
 }
 
 body {

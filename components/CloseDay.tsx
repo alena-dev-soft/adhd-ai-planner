@@ -133,7 +133,7 @@ export function CloseDay({
             onChange={(e) => changeText(field, e.target.value)}
             onBlur={flush}
             rows={2}
-            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent-text"
+            className="min-h-14 w-full resize-y border border-line bg-transparent p-2.5 text-[0.9rem] outline-none focus:border-accent"
           />
         </div>
       ))}

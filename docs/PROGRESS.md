@@ -495,3 +495,28 @@ The structure matches well (separate week/day halves, rows num·title·target·b
 Next step (after confirmation): fonts + tokens (`app/layout.tsx`, `app/globals.css`).
 
 **Decision (user):** all proposals Q1–Q6 approved as written (no `--warn` token; Tailwind mapping in `@theme`). The next steps implement them without further questions.
+
+## UI redesign step 2 — Fonts, theme tokens and Tailwind mapping
+
+What was done:
+- **Fonts:** `app/layout.tsx` loads Cinzel (500/700), EB Garamond (400/500 + italic), Marcellus (400), Cormorant Garamond (500/600 + italic), Alegreya (400/500/700 + italic) and Alegreya SC (500/700) with `next/font/google`. They are exposed as `--font-cinzel`, `--font-eb-garamond`, `--font-marcellus`, `--font-cormorant`, `--font-alegreya` and `--font-alegreya-sc`, and all the variable classes are on `<html>`. `<body>` uses `bg-bg font-body text-ink`.
+- **Tokens:** `app/globals.css` = `@import "tailwindcss"`, then the Tailwind mapping, a few app rules, then `docs/ui/themes.css` appended verbatim (checked with `diff`). The old cream/paper/sage/skyblue/warm `@theme` tokens, the Georgia body and the sage focus ring are removed.
+- **Tailwind mapping (v4, there is no tailwind.config):**
+  - `@theme inline` defines `--color-bg/page/line/ink/muted/accent/accent-ink/glow: var(--…)` and `--radius-page: var(--radius)`. This gives `bg-page`, `text-accent`, `border-line`, `rounded-page`, … and they follow `data-theme`.
+  - `font-head` / `font-body` are defined with `@utility` (`font-family: var(--font-head|body)`). They are **not** `@theme` tokens because themes.css already owns `--font-head`/`--font-body`. A same-named `@theme` token made Tailwind emit a self-referencing `:root{--font-head:var(--font-head)}`.
+- **Kept in globals.css:** `body { line-height: 1.8 }`, a `::placeholder` colour set to `--muted`, and a `--glow` focus ring for `[type=checkbox]` and `[tabindex]` (focusable rows), which themes.css doesn't cover.
+- **Old classes replaced in components:**
+  - `muted-text` → `muted`
+  - `sage` / `skyblue` → `accent`
+  - `paper` → `page`
+  - `sage-text` focus borders → `accent`
+  - the row focus outline → `glow`
+  - `warm-text` warnings → `ink` (Q4: no warning colour)
+  - `font-serif` → `font-body`
+  - Selected rating and selected day use `text-accent-ink` on `bg-accent`.
+  - This is a colour swap only. Layout and markup are unchanged; the restyle to `.page` / `.row` / `.pill` etc. comes in the later steps.
+- Verified:
+  - `grep` finds no cream/sage/skyblue/warm/dark/paper/muted-text class.
+  - `npm run lint` is clean, `npm test` passes 91/91, `next build` succeeds.
+  - `/login` was rendered locally with dummy Supabase env (no secrets in the container). Body background `#120E19`, body font EB Garamond, `--font-head` resolves to Cinzel.
+- Open / next: theme registry + ThemeProvider/Switcher (prompt §2), then the component restyle (§3) and the animation triggers (§4). The login card still has its old inline shadow; it gets restyled with `.page` in the component step.
