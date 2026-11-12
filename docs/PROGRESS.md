@@ -559,3 +559,33 @@ What was done:
 - Verified: lint clean, `npm test` 96/96. Playwright on a temporary unauthenticated page with fake data (not committed): at 1440px the pages sit side by side (554px + 654px, gap 24px), no horizontal scroll; at 390px they stack, week first, pills in one row, no horizontal scroll; switching to Star Chart / Grove changes the unit, page title and section names; no console errors.
 
 Next: TaskRow / Bubble / check restyle (`.row`, `Bubble.tsx`), Quote / Notes / CloseDay restyle (themed notes title, `.unfold`, `.seal`), then the animation triggers.
+
+## UI redesign step 5 — Task rows, Bubble component, check button, animation triggers
+
+What was done:
+- **`components/Bubble.tsx`** (new): `<button class="bub" data-shape={orb|star|fly} aria-pressed aria-label="Pomodoro N for {title}">` with the SVG from DESIGN §6 (`viewBox 0 0 20 20`, `aria-hidden`). `data-pop="true"` only when told to. `tabIndex=-1` kept: focus stays on the row and keys 1–5 click bubbles (phase 6 decision). An empty title is labelled "day task {slot}".
+- **`components/Bubbles.tsx`**: renders 5 `Bubble`s in `theme.bubbleShape` (from `useTheme()`). The popped bubble gets `key={`${index}-${n}`}`, so every new pop remounts it and replays ignite + ring. `+N` overflow only renders when there is one. The click logic is unchanged: `clickBubble()` in `Planner`, so clicking the last lit bubble still unfills it.
+- **`components/TaskRow.tsx`**:
+  - Both rows are now `.row` with `data-done="true|false"` and `data-spark`. Inside: `.num` (no trailing dot), and a `.title` span wrapping the borderless title input, because the `::after` strike can't live on an `<input>`. The input inherits font and color, so done rows dim through `.title`.
+  - The native checkbox is replaced by `CheckButton`: `.chk` `<button aria-pressed>` labelled "Day/Week task N done", with the SVG + `.burst` with 6 `<i>`. It keeps `data-native-keys`, so Space/Enter on the button work natively and Space on the row still toggles.
+  - Day row: [num · title · feasibility mark] as one flex item (`flex: 1 1 180px`), then [target `.box` · 5 bubbles · `.box.actual` · `.chk`] as a second item with `ml-auto` and 2px gaps. On narrow pages the second item wraps onto its own line. It fits 302px of content width at a 390px viewport, even with "+2".
+  - The feasibility mark moved from after the checkbox to right after the title, and it only renders when set. That saves horizontal room on phones.
+  - Week row: `.row` with `flex-nowrap!`, containing num · title · check.
+  - The target box is `.box` (30px per DESIGN). A new `.box-hit` rule in `globals.css` adds an invisible `::before` with `inset: -7px` that brings the hit area to 44px.
+- **Animation triggers (`Planner.tsx`, component state only, never saved):**
+  - `lastPop: { taskId: "d{slot}", index, n, shape } | null`. It is set in `onBubbleClick` only when the new count is greater than the old one, and `n` goes up by one on each pop. A click that lowers the count clears it for that task. `shape` is the theme shape at click time, and the pop renders only while it matches the current shape, so a theme switch doesn't replay ignite. The pop also renders only on a lit bubble, because `ignite ... both` would otherwise show an unfilled bubble as filled.
+  - `lastSpark: "d{slot}" | "w{slot}" | null`. It is set in `onToggleDone` only when `isDone` becomes true, by click or by Space on the row. Unticking that row clears it, so ticking it again replays the burst. Initial state is `null`, so nothing sparks on load.
+- No changes to Server Actions, Supabase or `lib/domain`.
+- Verified:
+  - lint is clean and `npm test` passes 96/96 (`tsc` only reports the known `LayoutProps` item).
+  - Playwright run on a temporary public page with fake data (deleted, not committed):
+    - On load there are 0 `data-spark` / `data-pop`.
+    - Clicking bubble 3 puts `data-pop` on that bubble (ignite + ring captured).
+    - Ticking a row draws the check, strikes through the title and fires sparks on that row only. Ticking a week row moves the spark there.
+    - Clicking the last lit bubble unfills it and removes the pop.
+    - Shapes change to star / fly with the theme.
+    - Bubbles are 38×44 and checks are 44×44.
+    - After a reload there are 0 sparks.
+    - Neither 1440px nor 390px scrolls horizontally, and day controls wrap under the title at 390px. No page errors.
+
+Next: Quote / Notes / CloseDay restyle (themed notes title, `.field`, `.unfold`, `.rate`, `.seal` + "Reopen the day"), Weekly Review and Login restyle.

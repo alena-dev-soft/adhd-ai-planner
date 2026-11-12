@@ -15,6 +15,7 @@ import { CloseDay } from "./CloseDay";
 import { Notes } from "./Notes";
 import { Page, PageTitle, Section } from "./Page";
 import { Quote } from "./Quote";
+import type { BubblePop } from "./Bubbles";
 import { DayTaskRow, WeekTaskRow } from "./TaskRow";
 import { Header, WeekNav } from "./TopBar";
 import { useTheme } from "./ThemeProvider";
@@ -63,6 +64,14 @@ export function Planner({
   const [notes, setNotes] = useState(dayData.notes);
   const [weekOpen, setWeekOpen] = useState(false);
   const { theme } = useTheme();
+
+  // Animation triggers: UI-only, never saved, never set on load.
+  // lastPop = the bubble a click just filled (taskId `d{slot}`); n bumps on every pop so the key replays it.
+  const [lastPop, setLastPop] = useState<(BubblePop & { taskId: string }) | null>(null);
+  // lastSpark = the row (`d{slot}` / `w{slot}`) the user just ticked to done.
+  const [lastSpark, setLastSpark] = useState<string | null>(null);
+  const markSpark = (rowId: string, isDone: boolean) =>
+    setLastSpark((cur) => (isDone ? rowId : cur === rowId ? null : cur));
 
   const dates = weekDates(weekStart);
   const day = parseISO(selectedDate);
@@ -210,8 +219,10 @@ export function Planner({
                       nextInputId={slot < 12 ? `week-task-${slot + 1}` : undefined}
                       onTitleChange={(title) => updateWeek(slot, { title })}
                       onTitleCommit={() => commitWeekTitle(slot, t.title)}
+                      spark={lastSpark === `w${slot}`}
                       onToggleDone={() => {
                         const isDone = !t.isDone;
+                        markSpark(`w${slot}`, isDone);
                         updateWeek(slot, { isDone });
                         save(() => saveWeekTask({ weekId, slot, isDone }));
                       }}
@@ -244,13 +255,24 @@ export function Planner({
                     onTitleChange={(title) => updateDay(slot, { title })}
                     onTitleCommit={() => commitDayTitle(slot, t.title)}
                     onTargetCommit={(n) => commitTarget(slot, n)}
+                    pop={lastPop?.taskId === `d${slot}` ? lastPop : null}
+                    spark={lastSpark === `d${slot}`}
                     onBubbleClick={(n) => {
                       const completedPomodoros = clickBubble(t.completedPomodoros, n);
+                      const taskId = `d${slot}`;
+                      setLastPop((cur) =>
+                        completedPomodoros > t.completedPomodoros
+                          ? { taskId, index: n, n: (cur?.n ?? 0) + 1, shape: theme.bubbleShape }
+                          : cur?.taskId === taskId
+                            ? null
+                            : cur,
+                      );
                       updateDay(slot, { completedPomodoros });
                       save(() => saveDayTask({ dayId, slot, completedPomodoros }));
                     }}
                     onToggleDone={() => {
                       const isDone = !t.isDone;
+                      markSpark(`d${slot}`, isDone);
                       updateDay(slot, { isDone });
                       save(() => saveDayTask({ dayId, slot, isDone }));
                     }}

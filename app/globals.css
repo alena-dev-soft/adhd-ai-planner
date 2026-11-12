@@ -55,6 +55,10 @@ body {
 }
 a.pill, a.btn { text-decoration: none; }
 
+/* The target .box is 30px (DESIGN); an invisible ring extends its hit area to 44px. */
+button.box-hit { position: relative; }
+button.box-hit::before { content: ""; position: absolute; inset: -7px; }
+
 /* ADH Planner — fantasy themes + micro-animations
    Drop into app/globals.css (after Tailwind directives).
    Theme is set on <html data-theme="grimoire|astral|forest">. */

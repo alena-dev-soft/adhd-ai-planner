@@ -1,35 +1,47 @@
-import clsx from "clsx";
 import { BUBBLE_COUNT, bubbleDisplay } from "@/lib/domain/bubbles";
+import type { BubbleShape } from "@/lib/theme";
+import { Bubble } from "./Bubble";
+import { useTheme } from "./ThemeProvider";
 
-/** Five pomodoro bubbles; completed > 5 shows "+N" after the last bubble. */
+/**
+ * The bubble that was just filled: index 1–5, `n` = click counter (remount key),
+ * `shape` = theme shape at click time, so a theme switch doesn't replay the pop.
+ */
+export type BubblePop = { index: number; n: number; shape: BubbleShape };
+
+/** Five pomodoro bubbles in the theme's shape; completed > 5 shows "+N" after the last bubble. */
 export function Bubbles({
   completed,
+  taskTitle,
+  pop,
   onClick,
 }: {
   completed: number;
+  taskTitle: string;
+  pop?: BubblePop | null;
   onClick?: (n: number) => void;
 }) {
+  const { theme } = useTheme();
   const { filled, overflow } = bubbleDisplay(completed);
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center">
       {Array.from({ length: BUBBLE_COUNT }, (_, i) => {
-        const n = i + 1;
+        const index = i + 1;
+        const lit = index <= filled;
+        const popping = lit && pop?.index === index && pop.shape === theme.bubbleShape;
         return (
-          <button
-            key={n}
-            type="button"
-            tabIndex={-1}
-            aria-label={`Pomodoro ${n}`}
-            aria-pressed={n <= filled}
-            onClick={() => onClick?.(n)}
-            className={clsx(
-              "size-4 rounded-full border transition-colors",
-              n <= filled ? "border-accent bg-accent" : "border-line hover:bg-line",
-            )}
+          <Bubble
+            key={popping ? `${index}-${pop.n}` : index}
+            n={index}
+            taskTitle={taskTitle}
+            shape={theme.bubbleShape}
+            lit={lit}
+            pop={popping}
+            onClick={() => onClick?.(index)}
           />
         );
       })}
-      <span className="w-5 text-[0.7rem] text-muted">{overflow}</span>
+      {overflow && <span className="pl-0.5 text-sm tabular-nums text-muted">{overflow}</span>}
     </div>
   );
 }
